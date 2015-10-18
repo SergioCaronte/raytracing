@@ -28,7 +28,7 @@
 
 #include <iostream>
 #include "math.h"
-#include "matrix.h"
+
 
 /**
  * An implementation of a Vector (as in linear algebra).
@@ -196,6 +196,7 @@ public:
         return *this;
     }
 };
+
 
 /// + operator for vectors.
 inline Vector operator+(Vector left, const Vector &right) {

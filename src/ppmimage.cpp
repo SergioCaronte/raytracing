@@ -5,9 +5,41 @@
 #include <sstream>
 #include <stdexcept>
 
-void PPMImage::create(int width, int height){}
+void PPMImage::create(int w, int h)
+{
+	width = w;
+	height = h;
+	data.resize(height);
+	for(size_t i = 0; i < data.size(); ++i)
+		data[i].resize(width);
+}
 
-void PPMImage::set_color(int w, int h, Color c){}
+void PPMImage::set_color(int w, int h, Color c)
+{
+	data[h][w] = c;
+}
+
+bool PPMImage::save(const std::string filename)
+{
+	// Create image PPM file.
+    std::ofstream file(filename);
+    if(!file.is_open()) 
+	{
+        std::cerr << "Failed to create output file: " << filename << std::endl;
+        return false;
+    }
+
+    // PPM header.
+    file << "P3" << std::endl;
+    file << width << " " << height << std::endl;
+    file << "255" << std::endl;
+
+	for(size_t h = 0; h < height; ++h) 
+        for(size_t w = 0; w < width; ++w) 
+			 file << data[h][w];
+	file.close();
+	return true;
+}
 
 void PPMImage::load(const std::string &file) 
 {

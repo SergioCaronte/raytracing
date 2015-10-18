@@ -11,6 +11,7 @@ public:
 
 	void create(int width, int height);
 	void set_color(int w, int h, Color c);
+	bool save(const std::string filename);
 
     inline bool loaded() {  return height == 0; }
     void load(const std::string &file);

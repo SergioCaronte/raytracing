@@ -75,6 +75,7 @@ public:
     }
 };
 
+
 /// + operator for point-vector addition.
 inline Point operator+(Point left, const Vector &right) {
     left += right;

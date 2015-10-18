@@ -2,79 +2,84 @@
 #define MATH_MATRIX_H
 
 #include "math.h"
+
 #include <cstring>
 #include <new>
 #include <stdexcept>
 #include <cfloat>
 #include <string>
+#include <sstream>
 
-/**
- * Represents a generic matrix with arbitrary size.
- * @param NumRows The number of rows in the matrix.
- * @param NumColumns The number of columns in the matrix.
- * @param DataType The type of the matrix. Default is float.
- **/
 template<size_t NumRows, size_t NumColumns, typename DataType = float>
 class Matrix {
     /// The data of the matrix.
     DataType _data[NumRows][NumColumns];
 
 public:
-    /**
-     * Acessing elements from the data. Fails silently (or not).
-     **/
-    inline DataType *operator[](size_t index) {
+
+	inline void identity()
+	{
+		 for(size_t i = 0; i < getNumRows(); ++i) 
+		{
+            for(size_t j = 0; j < getNumColumns(); ++j) 
+			{
+				if(i == j)
+					_data[i][j] = DataType(1);
+				else
+					_data[i][j] = DataType(0);
+            }
+        }
+	}
+
+	inline void fill(DataType dt)
+	{
+		 for(size_t i = 0; i < getNumRows(); ++i) 
+		{
+            for(size_t j = 0; j < getNumColumns(); ++j) 
+			{
+                _data[i][j] = dt;
+            }
+        }
+	}
+
+    inline DataType *operator[](size_t index) 
+	{
         return _data[index];
     }
 
-    /**
-     * Acessing elements from the data. Fails silently (or not).
-     * Const version.
-     **/
-    inline const DataType *operator[](size_t index) const {
+
+    inline const DataType *operator[](size_t index) const 
+	{
         return _data[index];
     }
 
-    /**
-     * Accessing elements from the data; throws std::out_of_range in case of
-     * error.
-     **/
-    inline DataType &at(size_t row, size_t column) {
+   
+    inline DataType &at(size_t row, size_t column) 
+	{
         if(row >= NumRows || column >= NumColumns)
             throw std::out_of_range("Trying to access invalid matrix element");
         return _data[row][column];
     }
 
-    /**
-     * Accessing elements from the data; throws std::out_of_range in case of
-     * error.
-     * Const version.
-     **/
-    inline const DataType &at(size_t row, size_t column) const {
+    inline const DataType &at(size_t row, size_t column) const 
+	{
         if(row >= NumRows || column >= NumColumns)
             throw std::out_of_range("Trying to access invalid matrix element");
         return _data[row][column];
     }
 
-    /**
-     * Returns the number of rows in the matrix.
-     **/
-    inline size_t getNumRows() {
+    inline size_t getNumRows()
+	{
         return NumRows;
     }
 
-    /**
-     * Returns the number of columns in the matrix.
-     **/
-    inline size_t getNumColumns() {
+    inline size_t getNumColumns() 
+	{
         return NumColumns;
     }
 
-    /**
-     * += operator for matrixes.
-     * Throws std::runtime_error if the matrixes aren't of the same size.
-     **/
-    Matrix &operator+=(const Matrix &right) {
+    Matrix &operator+=(const Matrix &right) 
+	{
         if((getNumRows() != right.getNumRows())
                 || getNumColumns() != right.getNumColumns()) {
             throw std::runtime_error("Invalid matrix size");
@@ -87,55 +92,53 @@ public:
         }
     }
 
-    /**
-     * -= operator for matrixes.
-     * Throws std::runtime_error if the matrixes aren't of the same size.
-     **/
-    Matrix &operator-=(const Matrix &right) {
+
+    Matrix &operator-=(const Matrix &right) 
+	{
         if((getNumRows() != right.getNumRows())
-                || getNumColumns() != right.getNumColumns()) {
+                || getNumColumns() != right.getNumColumns()) 
+		{
             throw std::runtime_error("Invalid matrix size");
         }
 
-        for(size_t i = 0; i < getNumRows(); ++i) {
-            for(size_t j = 0; j < getNumColumns(); ++j) {
+        for(size_t i = 0; i < getNumRows(); ++i) 
+		{
+            for(size_t j = 0; j < getNumColumns(); ++j) 
+			{
                 _data[i][j] -= right[i][j];
             }
         }
     }
 
-    /**
-     * *= operator by a scalar.
-     **/
-    Matrix &operator*=(float right) {
-        for(size_t i = 0; i < getNumRows(); ++i) {
-            for(size_t j = 0; j < getNumColumns(); ++j) {
+    Matrix &operator*=(float right)
+	{
+        for(size_t i = 0; i < getNumRows(); ++i) 
+		{
+            for(size_t j = 0; j < getNumColumns(); ++j) 
+			{
                 _data[i][j] *= right;
             }
         }
     }
 
-    /**
-     * /= operator by a scalar.
-     * if the scalar is 0, throws std::runtime_error.
-     **/
-    Matrix &operator/=(float right) {
+
+    Matrix &operator/=(float right) 
+	{
         if(std::abs(right) < FLT_EPSILON)
             throw std::runtime_error("Division by zero");
 
-        for(size_t i = 0; i < getNumRows(); ++i) {
-            for(size_t j = 0; j < getNumColumns(); ++j) {
+        for(size_t i = 0; i < getNumRows(); ++i) 
+		{
+            for(size_t j = 0; j < getNumColumns(); ++j) 
+			{
                 _data[i][j] /= right;
             }
         }
     }
 
-    /**
-     * *= operator between matrixes.
-     * If the matrixes are not square matrixes, throws a std::runtime_error
-     * exception.
-     **/
-    Matrix &operator*=(const Matrix &right) {
+
+    Matrix &operator*=(const Matrix &right)
+	{
         if(getNumRows() != right.getNumColumns()
                 || getNumColumns() != right.getNumRows())
             throw std::runtime_error("Invalid matrix size");
@@ -145,24 +148,37 @@ public:
                 for(size_t k = 0; k < getNumColumns(); ++k)
                     _data[i][k] *= right[k][j];
     }
+
+	std::string print() 
+	{
+		std::stringstream stream;
+		for(size_t i = 0; i < getNumRows(); ++i)
+		{
+			for(size_t j = 0; j < getNumColumns(); ++j)
+			{
+				stream << _data[i][j] << "\t";
+			}
+			stream << "\n";
+		}
+		return stream.str();
+	}
 };
 
-/**
- * * operator between matrixes.
- * If the number of columns of the first matrix is different than the
- * number of lines of the second matrix a std::runtime_error exception
- * is thrown.
- **/
+typedef Matrix<4,4,float> Matrix4x4;
+
+
 template<int a, int b, int c>
-Matrix<a, c> operator*(const Matrix<a, b> &left, const Matrix<b, c> &right) {
+Matrix<a, c> operator*( Matrix<a, b> &left,  Matrix<b, c> &right) 
+{
     Matrix<a, c> m;
+	m.fill(0);
 
     for(size_t i = 0; i < left.getNumRows(); ++i)
         for(size_t j = 0; j < right.getNumColumns(); ++j)
             for(size_t k = 0; k < left.getNumColumns(); ++k)
-                m[i][k] = left[i][k] * right[k][j];
+                m[i][k] += left[i][k] * right[k][j];
 
     return m;
 }
 
-#endif // !MATH_MATRIX_HPP
+#endif 

@@ -1,7 +1,45 @@
 #include "raytracer.h"
+#include "ppmimage.h"
 #include <fstream>
 
 #define SATURATE(a) std::max(a, 0.0f)
+
+void Raytracer::compute(Scene &scene) 
+{
+	Screen sc = scene.screen;
+
+    Vector px_right = sc.world_width_px * sc.right_dir;
+    Vector px_bottom = sc.world_height_px * sc.bottom_dir;
+
+	//ray origin is fixed from camera pos, direction will be calculated later
+	Ray ray(scene.camera.pos, Vector());
+
+	//output file
+	PPMImage output;
+	output.create(sc.width_px, sc.height_px);
+	// for each pixel of the virtual screen, calculate the color.
+    for(size_t h = 0; h < sc.height_px; ++h) 
+	{
+		std::cout << "\rcalculating row " << h << " of " << sc.height_px;
+        for(size_t w = 0; w < sc.width_px; ++w) 
+		{
+            // Get the pixel position.
+            Point pos = sc.top_left;
+            pos += w * px_right;
+            pos += h * px_bottom;
+
+            // Get a vector width the distance between the camera and the pixel.
+			ray.direction = pos - scene.camera.pos;
+            ray.direction.normalize();
+
+			Color p = trace(scene, ray, max_depth);
+			output.set_color(w, h, p);
+        }
+		std::cout << "\r                           ";
+    }
+	if(!output.save(scene.output))
+		std::cerr << "Failed to save output file: " << scene.output << std::endl;
+}
 
 Color Raytracer::trace(Scene &scene, const Ray &r, size_t depth, Object *exclObj) 
 {
@@ -85,54 +123,6 @@ Color Raytracer::trace(Scene &scene, const Ray &r, size_t depth, Object *exclObj
 	return final_color;
 }
 
-void Raytracer::compute(Scene &scene) 
-{
-	Screen sc = scene.screen;
-
-    // Create image PPM file.
-    std::ofstream image(scene.output);
-    if(!image.is_open()) 
-	{
-        std::cerr << "Failed to create output file: " << scene.output << std::endl;
-        exit(1);
-    }
-
-    // PPM header.
-    image << "P3" << std::endl;
-    image << scene.screen.width_px << " " << scene.screen.height_px << std::endl;
-    image << "255" << std::endl;
-
-    Vector px_right = sc.world_width_px * sc.right_dir;
-    Vector px_bottom = sc.world_height_px * sc.bottom_dir;
-
-	//ray origin is fixed from camera pos, direction will be calculated later
-	Ray ray(scene.camera.pos, Vector());
-
-    // for each pixel of the virtual screen, calculate the color.
-	int height = sc.height_px;
-	int width = sc.width_px;
-    for(size_t h = 0; h < height; ++h) 
-	{
-		std::cout << "\rcalculating row " << h << " of " << sc.height_px;
-        for(size_t w = 0; w < width; ++w) 
-		{
-            // Get the pixel position.
-            Point pos = scene.screen.top_left;
-            pos += w * px_right;
-            pos += h * px_bottom;
-
-            // Get a vector width the distance between the camera and the pixel.
-			ray.direction = pos - scene.camera.pos;
-            ray.direction.normalize();
-
-			Color p = trace(scene, ray, max_depth);
-            image << p;
-        }
-		std::cout << "\r                           ";
-    }
-    image.close();
-}
-
 bool Raytracer::intersection(Scene &scene, const Ray &ray,
 		Intersection &intersection, const Point *max_pos, const Object *excluded_obj,
         bool *inside) 
@@ -155,6 +145,7 @@ bool Raytracer::intersection(Scene &scene, const Ray &ray,
 		bool insided;
 		t = (*it)->hit_test(ray, n, max_pos, &insided);
 
+		//if found closest until now, save info
 		if(t > FLT_EPSILON && t < closest_t) 
 		{
             closest_obj = (*it);
@@ -167,13 +158,13 @@ bool Raytracer::intersection(Scene &scene, const Ray &ray,
     // if object was found.
     if(closest_obj) 
 	{
-        intersection.object = *closest_obj;
 		intersection.contact = ray.origin + closest_t * ray.direction;
-		intersection.color = intersection.object.get_color(intersection.contact);
+		intersection.object = *closest_obj;
 		intersection.normal = closest_normal;
-        
+		intersection.color = intersection.object.get_color(intersection.contact);
+		
 		// check if camera is inside hit sphere.
-		if(intersection.object.type == ObjectType::SphereObjectType) 
+		if(intersection.object.type == ObjectType::Sphere) 
 		{
 			if(inside)	*inside = false;
             if(closest_inside) 
@@ -190,10 +181,8 @@ bool Raytracer::intersection(Scene &scene, const Ray &ray,
 
 Vector Raytracer::get_reflection_direction(const Vector &dir, const Vector &normal) 
 {
-    // get the inversion of the direction.
-    float c = Vector::dot((-1) * dir, normal);
-
-    return (dir + (2 * normal * c)).normalize();
+    float d = Vector::dot((-1) * dir, normal);
+    return (dir + (2 * normal * d)).normalize();
 }
 
 bool Raytracer::get_transmission_direction(double refr_rate, const Vector &dir,

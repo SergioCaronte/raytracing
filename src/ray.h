@@ -13,6 +13,15 @@ public:
 
 	Point origin;
 	Vector direction;
+
+
 };
+
+inline std::ostream &operator<<(std::ostream &stream, const Ray &ray) 
+{
+	stream << "origin: (" <<ray.origin.x << ", " << ray.origin.y << ", " << ray.origin.z << ") direction: ("
+		<< ray.direction.x << ", " << ray.direction.y << ", " << ray.direction.z << ")";
+    return stream;
+}
 
 #endif 

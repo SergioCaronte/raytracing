@@ -10,7 +10,7 @@ void Scene::load_file(int argc, char **argv)
 {
 	if(argc < 3)
 	{
-		std::cerr << "Usage: " << argv[0] << " input output [width] [height]\n";
+		std::cerr << "Cmd line usage: " << argv[0] << " input output [width] [height]\n";
         exit(1);
 	}
 
@@ -47,7 +47,7 @@ void Scene::load_file(int argc, char **argv)
     input.close();
 }
 
-void Scene::calculate_base() 
+void Scene::calculate_screen() 
 {
     float d = Point::distance(screen.center, camera.pos);
 
@@ -86,8 +86,8 @@ void Scene::parse_camera(std::ifstream &in)
     camera.up.normalize();
 
     in >> camera.fovy;
-
-    calculate_base();
+	
+	calculate_screen();
 }
 
 void Scene::parse_light(std::ifstream &in) 
@@ -96,7 +96,7 @@ void Scene::parse_light(std::ifstream &in)
 
     in >> numLights;
     if(in.fail())
-        fatalError("Failed to read the input file(light description)");
+        fatalError("Failed to read the input file (light description)");
 
     // ambient light.
     in >> ambient.pos.x >> ambient.pos.y >> ambient.pos.z;
@@ -190,11 +190,9 @@ void Scene::parse_object(std::istream &in)
 		{
 			SphereObject* object = new SphereObject();
 			object->id = i;
-
 			object->texture = textures[texId];
 			object->material = materials[matId];
 
-            object->type = SphereObjectType;
             in >> object->pos.x >> object->pos.y >> object->pos.z;
             in >> object->radius;
 			objects.push_back(object);
@@ -203,11 +201,9 @@ void Scene::parse_object(std::istream &in)
 		{
 			PolyhedronObject* object = new PolyhedronObject();
 			object->id = i;
-
 			object->texture = textures[texId];
 			object->material = materials[matId];
 
-            object->type = PolyhedronObjectType;
             in >> object->numFaces;
             if(in.fail())
                 fatalError("Failed to read the input file (polyhedron description)");
@@ -220,6 +216,19 @@ void Scene::parse_object(std::istream &in)
             }
 			objects.push_back(object);
         }
+		else if(type == "torus") 
+		{
+			TorusObject* object = new TorusObject();
+			object->id = i;
+			object->texture = textures[texId];
+			object->material = materials[matId];
+
+			in >> object->radius >> object->thickness;
+			in >> object->pos.x >> object->pos.y >> object->pos.z;
+			in >> object->rot.x >> object->rot.y >> object->rot.z;
+			object->calculate_matrices();
+			objects.push_back(object);
+		}
         else 
 		{
             fatalError("invalid object (%s)", type.c_str());
