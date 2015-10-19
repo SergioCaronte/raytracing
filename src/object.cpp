@@ -186,6 +186,10 @@ TorusObject::TorusObject()
 
 void TorusObject::calculate_matrices()
 {
+	rot.x = toRads(rot.x);
+	rot.y = toRads(rot.y);
+	rot.z = toRads(rot.z);
+
 	//translate and inverse translate matrices
 	Matrix4x4 t, i_t;
 	t.identity();
@@ -206,11 +210,26 @@ void TorusObject::calculate_matrices()
 	r[1][0] = sin(rot.z);				r[1][1] = cos(rot.x)*cos(rot.z);	r[1][2] = -sin(rot.x);
 	r[2][0] = -sin(rot.y);				r[2][1] = sin(rot.x);				r[2][2] = cos(rot.x)*cos(rot.y);
 
-	//object transform matrix
-	transform = r * t;
+	Matrix4x4 i_rx, i_ry, i_rz;
+	i_rx.identity();
+	i_rx[1][1] = cos(rot.x);		i_rx[1][2] = sin(rot.x);
+	i_rx[2][1] = -sin(rot.x);		i_rx[2][2] = cos(rot.x);
+
+	i_ry.identity();	
+	i_ry[0][0] = cos(rot.y);		i_ry[0][2] = -sin(rot.y);
+	i_ry[2][0] = sin(rot.y);		i_ry[2][2] = cos(rot.y);
+
+	i_rz.identity();	
+	i_rz[0][0] = cos(rot.z);		i_rz[0][1] = sin(rot.z);
+	i_rz[1][0] = -sin(rot.z);		i_rz[1][1] = cos(rot.z);
+
+	//object transform matrix  t rz rx ry
+	transform = t * r;
 
 	//object inverse transform matrix
 	inv_trans = i_t * i_r;
+	//inv_trans = i_ry * i_rx * i_rz * i_t;
+	//inv_trans = i_t * i_rz * i_rx * i_ry;
 }
 
 float TorusObject::hit_test(const Ray &ray, Vector &normal, const Point *max_pos, bool *inside)

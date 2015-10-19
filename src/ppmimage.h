@@ -10,7 +10,7 @@ public:
     PPMImage() : height(0), width(0) {}
 
 	void create(int width, int height);
-	void set_color(int w, int h, Color c);
+	void set_color(const int &w, const int &h, Color c);
 	bool save(const std::string filename);
 
     inline bool loaded() {  return height == 0; }

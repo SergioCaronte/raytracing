@@ -49,10 +49,11 @@ void Scene::load_file(int argc, char **argv)
 
 void Scene::calculate_screen() 
 {
-    float d = Point::distance(screen.center, camera.pos);
+	screen.samples = 4;
+    screen.d = Point::distance(screen.center, camera.pos);
 
     // Sizes
-    screen.height = 2 * tan(toRads(camera.fovy / 2.0f)) * d;
+    screen.height = 2 * tan(toRads(camera.fovy / 2.0f)) * screen.d;
     screen.width = (screen.height * screen.width_px) / screen.height_px;
 
     // Directions
@@ -67,8 +68,8 @@ void Scene::calculate_screen()
     screen.top_left += camera.up * (screen.height / 2.0f);
 
     // Pixel size.
-    screen.world_width_px = screen.width / (float) screen.width_px;
-    screen.world_height_px = screen.height / (float) screen.height_px;
+    screen.px_size_w = screen.width / (float) screen.width_px;
+    screen.px_size_h = screen.height / (float) screen.height_px;
 }
 
 void Scene::parse_camera(std::ifstream &in) 
@@ -121,7 +122,8 @@ void Scene::parse_texture(std::ifstream &in)
     if(in.fail())
         fatalError("Failed to read the input file (texture description)");
 
-    for(int i = 0; i < numTextures; ++i) {
+    for(size_t i = 0; i < numTextures; ++i) 
+	{
         tex.id = i;
         in >> type;
 
@@ -164,7 +166,8 @@ void Scene::parse_material(std::istream &in)
     if(in.fail())
         fatalError("Failed to read the input file (material description)");
 
-    for(int i = 0; i < numMaterials; ++i) {
+    for(size_t i = 0; i < numMaterials; ++i) 
+	{
         material.id = i;
         in >> material.kA >> material.kD >> material.kS >> material.alpha
            >> material.kR >> material.kT >> material.ior;

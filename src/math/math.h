@@ -7,6 +7,8 @@
 #define M_PI 3.14159265358979323846
 #endif 
 
+const double 	TWO_PI 		= 6.2831853071795864769;
+
 #ifndef EQN_EPS
 #define EQN_EPS 1e-90
 #endif

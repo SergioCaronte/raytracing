@@ -7,6 +7,7 @@
 #include "math\vector.h"
 #include "structs.h"
 #include "scene.h"
+#include "multijittered.h"
 
 // intersection structure
 struct Intersection
@@ -26,7 +27,7 @@ public:
 	// compute raytracing. trace a ray for every pixel
 	void compute(Scene &scene) ;
 	// trace the ray path, raytracing core
-	Color trace(Scene &scene, const Ray &ray, size_t depth, Object *exclObj = NULL);
+	Color trace(Scene &scene, const Ray &ray, size_t depth, Object *excluded_obj = NULL);
 	// get the ideal reflection direction
 	Vector get_reflection_direction(const Vector &dir, const Vector &normal);
 	// get the transmission direction
@@ -35,8 +36,15 @@ public:
 	bool intersection(Scene &scene, const Ray &ray, Intersection &interc, 
 		const Point *max_pos = NULL, const Object *excluded_obj = NULL,
         bool *inside = NULL);
+
+private:
+
+	MultiJittered sampler;
 	// max depth a ray can go recursively
 	int max_depth;
+
+	void compute_regular(Scene &scene);
+	void compute_sampled(Scene &scene);
 
 };
 #endif // !RAYTRACER_HPP

@@ -117,4 +117,4 @@ inline std::ostream &operator<<(std::ostream &os, const Point &obj) {
     return os;
 }
 
-#endif // !MATH_POINT_HPP
+#endif

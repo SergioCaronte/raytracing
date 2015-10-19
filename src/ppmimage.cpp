@@ -14,7 +14,7 @@ void PPMImage::create(int w, int h)
 		data[i].resize(width);
 }
 
-void PPMImage::set_color(int w, int h, Color c)
+void PPMImage::set_color(const int &w, const int &h, Color c)
 {
 	data[h][w] = c;
 }

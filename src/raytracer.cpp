@@ -6,10 +6,18 @@
 
 void Raytracer::compute(Scene &scene) 
 {
+	if(scene.screen.samples > 1)
+		compute_sampled(scene);
+	else
+		compute_regular(scene);
+}
+
+void  Raytracer::compute_regular(Scene &scene)
+{
 	Screen sc = scene.screen;
 
-    Vector px_right = sc.world_width_px * sc.right_dir;
-    Vector px_bottom = sc.world_height_px * sc.bottom_dir;
+    Vector px_right = sc.px_size_w * sc.right_dir;
+    Vector px_bottom = sc.px_size_h * sc.bottom_dir;
 
 	//ray origin is fixed from camera pos, direction will be calculated later
 	Ray ray(scene.camera.pos, Vector());
@@ -18,6 +26,7 @@ void Raytracer::compute(Scene &scene)
 	PPMImage output;
 	output.create(sc.width_px, sc.height_px);
 	// for each pixel of the virtual screen, calculate the color.
+
     for(size_t h = 0; h < sc.height_px; ++h) 
 	{
 		std::cout << "\rcalculating row " << h << " of " << sc.height_px;
@@ -27,10 +36,13 @@ void Raytracer::compute(Scene &scene)
             Point pos = sc.top_left;
             pos += w * px_right;
             pos += h * px_bottom;
+			
+			//Point pos2 = Point( -sc.px_size_w * (w - 0.5f * (sc.width_px - 1.0f)),  
+			//					-sc.px_size_h * (h - 0.5f * (sc.width_px - 1.0f)),
+			//					sc.top_left.z);
 
             // Get a vector width the distance between the camera and the pixel.
-			ray.direction = pos - scene.camera.pos;
-            ray.direction.normalize();
+			ray.direction = (pos - scene.camera.pos).normalize();
 
 			Color p = trace(scene, ray, max_depth);
 			output.set_color(w, h, p);
@@ -41,13 +53,60 @@ void Raytracer::compute(Scene &scene)
 		std::cerr << "Failed to save output file: " << scene.output << std::endl;
 }
 
-Color Raytracer::trace(Scene &scene, const Ray &r, size_t depth, Object *exclObj) 
+void  Raytracer::compute_sampled(Scene &scene)
+{
+	int num_samples = scene.screen.samples;
+	float inv_samples = 1.0/num_samples;
+	sampler = MultiJittered(num_samples);
+
+	Screen sc = scene.screen;
+
+    Vector px_right = sc.px_size_w * sc.right_dir;
+    Vector px_bottom = sc.px_size_h * sc.bottom_dir;
+
+	//ray origin is fixed from camera pos, direction will be calculated later
+	Ray ray(scene.camera.pos, Vector());
+
+	//output file
+	PPMImage output;
+	output.create(sc.width_px, sc.height_px);
+	// for each pixel of the virtual screen, calculate the color.
+
+    for(size_t h = 0; h < sc.height_px; ++h) 
+	{
+		std::cout << "\rcalculating row " << h << " of " << sc.height_px;
+        for(size_t w = 0; w < sc.width_px; ++w) 
+		{
+			Color p;
+			for(int j = 0; j < num_samples; j++)
+			{
+				Point sp = sampler.sample_unit_square();
+
+				// Get the pixel position.
+				Point pos = sc.top_left;
+				pos += w * px_right + (sp.x * sc.px_size_w);
+				pos += h * px_bottom + (sp.y * sc.px_size_h);
+			
+				// Get a vector width the distance between the camera and the pixel.
+				ray.direction = (pos - scene.camera.pos).normalize();
+			
+				p += trace(scene, ray, max_depth) * inv_samples;
+			}
+			output.set_color(w, h, p);
+        }
+		std::cout << "\r                           ";
+    }
+	if(!output.save(scene.output))
+		std::cerr << "Failed to save output file: " << scene.output << std::endl;
+}
+
+Color Raytracer::trace(Scene &scene, const Ray &r, size_t depth, Object *excluded_obj) 
 {
     bool inside = false;
 	Intersection intersec;
 
-    // if ray didn't intersect anything, return ambiente color
-    if(!intersection(scene, r, intersec, NULL, exclObj, &inside))
+    // if ray didn't intersect anything, return ambient color
+    if(!intersection(scene, r, intersec, NULL, excluded_obj, &inside))
         return scene.ambient.color;
 
 	Material mat = intersec.object.material;
@@ -60,8 +119,7 @@ Color Raytracer::trace(Scene &scene, const Ray &r, size_t depth, Object *exclObj
     for(std::vector<Light>::iterator it = scene.lights.begin(); it != scene.lights.end(); ++it) 
 	{
         // light direction
-		Vector lightDir = it->pos - intersec.contact;
-        lightDir.normalize();
+		Vector lightDir = (it->pos - intersec.contact).normalize();
 
         // light source distance.
         float dist = Point::distance(it->pos, intersec.contact);

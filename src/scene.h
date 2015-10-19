@@ -15,7 +15,7 @@ public:
 	char *input;
     char *output;
 
-    Screen screen;
+	Screen screen;
     Camera camera;
 
     size_t numLights;

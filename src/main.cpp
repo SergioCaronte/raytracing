@@ -5,10 +5,10 @@ int main(int argc, char **argv) {
     Scene scene;
 	scene.load_file(argc, argv);
     
-	Raytracer rt(1);
+	Raytracer rt(4);
 	rt.compute(scene);
 
-	system("pause");
+	//system("pause");
 
     return 0;
 }

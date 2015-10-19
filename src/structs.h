@@ -14,6 +14,7 @@ struct Camera
     Vector dir;	// Direction vector.
     Vector up;	// Up vector.
     float fovy; // Field of view, in degrees.
+	float exposure_time; // Time of exposion
 };
 
 // Screen display.
@@ -27,8 +28,10 @@ struct Screen
     size_t height_px;	// Size in pixels of the height of the screen.
 	float width;		// Size in world coordinates of the width of the screen.
 	float height;		// Size in world coordinates of the height of the screen.
-	float world_width_px;	// Size in world coordinates of the width of a pixel.
-	float world_height_px;	// Size in world coordinates of the height of a pixel.
+	float px_size_w;	// Size in world coordinates of the width of a pixel.
+	float px_size_h;	// Size in world coordinates of the height of a pixel.
+	float d;
+	int samples;
 };
 
 // Attenuation factor of the light.
