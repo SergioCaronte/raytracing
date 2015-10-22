@@ -12,37 +12,96 @@ void Raytracer::compute(Scene &scene)
 		compute_regular(scene);
 }
 
-void  Raytracer::compute_regular(Scene &scene)
+Vector Raytracer::get_ray_direction(Scene &scene, int w, int h, const Point &ori, const Point &lp, const Point &sp)
+{
+	//float px_h = h + sp.y - lp.y;
+	//float px_w = w + sp.x - lp.x;
+	//
+	////pixel position onto view plane
+	//float ay = -scene.screen.px_size_h * ((px_h /(float)scene.screen.height_px) - 0.5f) ;
+	//float ax = scene.screen.px_size_w * ((px_w /(float)scene.screen.width_px) - 0.5f) ;  
+	//float az = 1;
+
+	////az = scene.camera.focal_dist - scene.screen.d;
+	////ay = (ay * scene.camera.focal_dist / scene.screen.d);
+	////ax = (ax * scene.camera.focal_dist / scene.screen.d);
+
+	//Point pt = ori + (ax * scene.camera.x) + (ay * scene.camera.y) - (az * scene.camera.z);
+	//Vector dir = pt - ori;
+
+	float px_h = h;
+	float px_w = w;
+	
+	//pixel position onto view plane
+	float ay = -1 * (px_h -(float)scene.screen.height_px/2 + sp.y);
+	float ax = 1 * (px_w - (float)scene.screen.width_px/2 + sp.x);  
+	float az = 1;
+
+	az = scene.camera.focal_dist;
+	ay = (ay * scene.camera.focal_dist / scene.screen.d);
+	ax = (ax * scene.camera.focal_dist / scene.screen.d);
+
+	//Point pt = ori + (ax * scene.camera.x) + (ay * scene.camera.y) - (az * scene.camera.z);
+	//Vector dir = pt - ori;
+	Vector dir = ((ax - lp.x) * scene.camera.x) + ((ay - lp.y) * scene.camera.y) - (az * scene.camera.z);
+	dir.normalize();
+	return dir;
+}
+
+Vector Raytracer::get_ray_direction(Scene &scene, int w, int h)
+{
+	//pixel position onto view plane
+	//float ay = -scene.screen.px_size_h * (((float)h / (float)scene.screen.height_px) - 0.5f) ;
+	//float ax = scene.screen.px_size_w  * (((float)w / (float)scene.screen.width_px) - 0.5f) ;  
+
+	//Point pt = scene.camera.pos + (ax * scene.camera.x) + (ay * scene.camera.y) - scene.camera.z;
+	//Vector dir = pt - scene.camera.pos;
+	//return dir.normalize();
+
+	float ay = -1 * ((float)h - (float)scene.screen.height_px/2.0 - 0.5f) ;
+	float ax = 1  * ((float)w - (float)scene.screen.width_px/2.0 - 0.5f) ;  
+
+	//Point pt = (ax * scene.camera.x) + (ay * scene.camera.y) - (scene.screen.d * scene.camera.z);
+	Vector dir = (ax * scene.camera.x) + (ay * scene.camera.y) - (scene.screen.d * scene.camera.z);
+	return dir.normalize();
+}
+
+void Raytracer::compute_regular(Scene &scene)
 {
 	Screen sc = scene.screen;
+	Camera cam = scene.camera;
 
-    Vector px_right = sc.px_size_w * sc.right_dir;
-    Vector px_bottom = sc.px_size_h * sc.bottom_dir;
+    //Vector px_right = sc.px_size_w * sc.right_dir;
+    //Vector px_bottom = sc.px_size_h * sc.bottom_dir;
 
 	//ray origin is fixed from camera pos, direction will be calculated later
-	Ray ray(scene.camera.pos, Vector());
+	Ray ray(cam.pos, Vector());
 
 	//output file
 	PPMImage output;
 	output.create(sc.width_px, sc.height_px);
-	// for each pixel of the virtual screen, calculate the color.
 
+	// for each pixel of the virtual screen, calculate the color.
     for(size_t h = 0; h < sc.height_px; ++h) 
 	{
 		std::cout << "\rcalculating row " << h << " of " << sc.height_px;
         for(size_t w = 0; w < sc.width_px; ++w) 
 		{
             // Get the pixel position.
-            Point pos = sc.top_left;
-            pos += w * px_right;
-            pos += h * px_bottom;
+            //Point pos = sc.top_left;
+            //pos += w * px_right;
+            //pos += h * px_bottom;
 			
-			//Point pos2 = Point( -sc.px_size_w * (w - 0.5f * (sc.width_px - 1.0f)),  
-			//					-sc.px_size_h * (h - 0.5f * (sc.width_px - 1.0f)),
-			//					sc.top_left.z);
 
+			//float ay = -nh * ((h/(float)sc.height_px) - 0.5f);
+			//float ax = nw * ((w/(float)sc.width_px) - 0.5f);  
+			
+			//Point pt = cam.pos + (ax * cam.x) + (ay * cam.y) - cam.z;
+			//Vector dir = pt - cam.pos;
+			//dir.normalize();
             // Get a vector width the distance between the camera and the pixel.
-			ray.direction = (pos - scene.camera.pos).normalize();
+			//ray.direction = (pos - scene.camera.pos).normalize();
+			ray.direction = get_ray_direction(scene, w, h);
 
 			Color p = trace(scene, ray, max_depth);
 			output.set_color(w, h, p);
@@ -58,14 +117,11 @@ void  Raytracer::compute_sampled(Scene &scene)
 	int num_samples = scene.screen.samples;
 	float inv_samples = 1.0/num_samples;
 	sampler = MultiJittered(num_samples);
-
+	
 	Screen sc = scene.screen;
 
-    Vector px_right = sc.px_size_w * sc.right_dir;
-    Vector px_bottom = sc.px_size_h * sc.bottom_dir;
-
-	//ray origin is fixed from camera pos, direction will be calculated later
-	Ray ray(scene.camera.pos, Vector());
+    //Vector px_right = sc.px_size_w;// * sc.right_dir;
+    //Vector px_bottom = sc.px_size_h;// * sc.bottom_dir;
 
 	//output file
 	PPMImage output;
@@ -81,14 +137,14 @@ void  Raytracer::compute_sampled(Scene &scene)
 			for(int j = 0; j < num_samples; j++)
 			{
 				Point sp = sampler.sample_unit_square();
+				
+				Point dp = scene.camera.sampler->sample_unit_disk();
+				Point lp = dp * scene.camera.lens_radius;
 
-				// Get the pixel position.
-				Point pos = sc.top_left;
-				pos += w * px_right + (sp.x * sc.px_size_w);
-				pos += h * px_bottom + (sp.y * sc.px_size_h);
-			
+				Ray ray;
+				ray.origin = scene.camera.pos + lp.x * scene.camera.x + lp.y * scene.camera.y;
 				// Get a vector width the distance between the camera and the pixel.
-				ray.direction = (pos - scene.camera.pos).normalize();
+				ray.direction = get_ray_direction(scene, w, h, ray.origin, lp, sp);
 			
 				p += trace(scene, ray, max_depth) * inv_samples;
 			}
@@ -107,7 +163,8 @@ Color Raytracer::trace(Scene &scene, const Ray &r, size_t depth, Object *exclude
 
     // if ray didn't intersect anything, return ambient color
     if(!intersection(scene, r, intersec, NULL, excluded_obj, &inside))
-        return scene.ambient.color;
+        return Color(0,0,0);
+		//return scene.ambient.color;
 
 	Material mat = intersec.object.material;
 
@@ -119,36 +176,47 @@ Color Raytracer::trace(Scene &scene, const Ray &r, size_t depth, Object *exclude
     for(std::vector<Light>::iterator it = scene.lights.begin(); it != scene.lights.end(); ++it) 
 	{
         // light direction
-		Vector lightDir = (it->pos - intersec.contact).normalize();
-
-        // light source distance.
-        float dist = Point::distance(it->pos, intersec.contact);
-
-        // attenuation.
-        float att = 1.0f / (it->att.a + dist * it->att.b + (dist * dist) * it->att.c);
-
-		Intersection useless;
-		Ray rl(intersec.contact, lightDir);
-        //if ray didn't intersects any object, it reaches the light
-		if(!intersection(scene, rl, useless, &it->pos, &intersec.object)) 
+		Light lt = *it;
+		float inv_samples = 1.0f/lt.num_samples;
+		for( int j = 0; j < lt.num_samples; j++) 
 		{
-            // diffuse light.
-            float cosDiff = SATURATE(Vector::dot(lightDir, intersec.normal));
-            diff_clr += it->color * cosDiff * mat.kD * att;
+			Point light_pos = lt.get_point();
+			//Vector lightDir = (it->pos - intersec.contact).normalize();
+			Vector lightDir = (light_pos - intersec.contact).normalize();
 
-            // Specular light.
-            // halfway vector.
-			Vector e = r.direction * (-1); 
-            Vector halfway = lightDir + e;
-            halfway.normalize();
+			// light source distance.
+			//float dist = Point::distance(it->pos, intersec.contact);
+			float dist = Point::distance(light_pos, intersec.contact);
 
-            // cos of the angle between the halfway vector and the normal.
-            float cosSpec = SATURATE(Vector::dot(halfway, intersec.normal.normalize()));
+			// attenuation.
+			float att = 1.0f / (it->att.a + dist * it->att.b + (dist * dist) * it->att.c);
 
-            // Shininess.
-            cosSpec = std::pow(cosSpec, mat.alpha);
-            spec_clr += it->color * cosSpec * mat.kS * att;
-        }
+			Intersection useless;
+			Ray rl(intersec.contact, lightDir);
+			//if ray didn't intersects any object, it reaches the light
+			//if(!intersection(scene, rl, useless, &it->pos, &intersec.object)) 
+			if(!intersection(scene, rl, useless, &it->pos, &intersec.object)) 
+			{
+				// diffuse light.
+				float cosDiff = SATURATE(Vector::dot(lightDir, intersec.normal));
+				//diff_clr += it->color * cosDiff * mat.kD * att;
+				diff_clr += (lt.color * cosDiff * mat.kD * att) * inv_samples;
+
+				// Specular light.
+				// halfway vector.
+				Vector e = r.direction * (-1); 
+				Vector halfway = lightDir + e;
+				halfway.normalize();
+
+				// cos of the angle between the halfway vector and the normal.
+				float cosSpec = SATURATE(Vector::dot(halfway, intersec.normal.normalize()));
+
+				// Shininess.
+				cosSpec = std::pow(cosSpec, mat.alpha);
+				//spec_clr += it->color * cosSpec * mat.kS * att;
+				spec_clr += (lt.color * cosSpec * mat.kS * att) * inv_samples;
+			}
+		}
     }
 
     Color reflect_clr;

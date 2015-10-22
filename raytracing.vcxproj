@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\color.h" />
-    <ClInclude Include="src\error.h" />
+    <ClInclude Include="src\light.h" />
     <ClInclude Include="src\math\math.h" />
     <ClInclude Include="src\math\matrix.h" />
     <ClInclude Include="src\math\plane.h" />
@@ -28,7 +28,7 @@
     <ClInclude Include="src\structs.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\error.cpp" />
+    <ClCompile Include="src\light.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\multijittered.cpp" />
     <ClCompile Include="src\object.cpp" />

@@ -45,6 +45,8 @@ private:
 
 	void compute_regular(Scene &scene);
 	void compute_sampled(Scene &scene);
+	inline Vector get_ray_direction(Scene &scene, int w, int h, const Point &ori,const Point &lp, const Point &sp);
+	inline Vector get_ray_direction(Scene &scene, int w, int h);
 
 };
 #endif // !RAYTRACER_HPP

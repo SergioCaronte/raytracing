@@ -5,50 +5,46 @@
 #include "math/point.h"
 #include "color.h"
 #include "ppmimage.h"
+
 // Structs for Raytracing task
+
+class Sampler;
 
 // Camera.
 struct Camera 
 {
     Point pos;	// Position point.
+	Point lookat; // Look at position
     Vector dir;	// Direction vector.
     Vector up;	// Up vector.
+	Vector x, y, z;
     float fovy; // Field of view, in degrees.
 	float exposure_time; // Time of exposion
+	
+	Sampler* sampler;
+	float focal_dist;
+	float lens_radius;
 };
 
 // Screen display.
 struct Screen 
 {  
     Point center;		// Coordinate of the center of the display screen.
-	Vector right_dir;	// Direction to the right of the screen.
-	Vector bottom_dir;	// Direction to the bottom of the screen.
-	Point top_left;		// Position of the top left pixel.
+	//Vector right_dir;	// Direction to the right of the screen.
+	//Vector bottom_dir;	// Direction to the bottom of the screen.
+	//Point top_left;		// Position of the top left pixel.
     size_t width_px;	// Size in pixels of the width of the screen.
     size_t height_px;	// Size in pixels of the height of the screen.
-	float width;		// Size in world coordinates of the width of the screen.
-	float height;		// Size in world coordinates of the height of the screen.
+	//float width;		// Size in world coordinates of the width of the screen.
+	//float height;		// Size in world coordinates of the height of the screen.
 	float px_size_w;	// Size in world coordinates of the width of a pixel.
 	float px_size_h;	// Size in world coordinates of the height of a pixel.
+	float aspect;
 	float d;
 	int samples;
+	float theta;
 };
 
-// Attenuation factor of the light.
-struct Attenuation 
-{
-    float a;	// Constant attenuation.  
-    float b;	// Linear attenuation.
-    float c;	// Quadratic attenuation.
-};
-
-// Light.
-struct Light
-{
-    Point pos;			//Light position
-    Color color;		//Light color
-    Attenuation att;	//Attenuation factor
-};
 
 // Types of textures.
 enum TextureType 

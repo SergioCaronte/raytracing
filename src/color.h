@@ -7,8 +7,11 @@
 class Color 
 {
 public:
+	float r, g, b;
+
     Color(float _r = 0.0f, float _g = 0.0f, float _b = 0.0f)
-        : r(_r), g(_g), b(_b) { }
+        : r(_r), g(_g), b(_b) 
+	{}
 
     void clamp() 
 	{
@@ -17,9 +20,7 @@ public:
 		b = std::min(b ,1.0f);
     }
 
-	float r;
-    float g;
-    float b;
+	
 
     Color &operator+=(float other) 
 	{
@@ -54,34 +55,33 @@ public:
     }
 };
 
-inline Color operator+(Color left, float right)
+inline Color operator+(Color lhv, float rhv)
 {
-    left += right;
-    return left;
+    lhv += rhv;
+    return lhv;
 }
 
-inline Color operator+(Color left, const Color &right) 
+inline Color operator+(Color lhv, const Color &rhv) 
 {
-    left += right;
-    return left;
+    lhv += rhv;
+    return lhv;
 }
 
-inline Color operator*(Color left, float right) 
+inline Color operator*(Color lhv, float rhv) 
 {
-    left *= right;
-    return left;
+    lhv *= rhv;
+    return lhv;
 }
 
-inline Color operator*(Color left, const Color &right) 
+inline Color operator*(Color lhv, const Color &rhv) 
 {
-    left *= right;
-    return left;
+    lhv *= rhv;
+    return lhv;
 }
 
 inline std::ostream &operator<<(std::ostream &stream, const Color &color) 
 {
-    stream << (int) (color.r * 255) << " " << (int) (color.g * 255) << " "
-        << (int) (color.b * 255) << std::endl;
+    stream << (int) (color.r * 255) << " " << (int) (color.g * 255) << " "<< (int) (color.b * 255) << std::endl;
     return stream;
 }
 

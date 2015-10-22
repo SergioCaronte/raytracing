@@ -1,5 +1,4 @@
 #include "ppmimage.h"
-#include "error.h"
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -65,9 +64,9 @@ void PPMImage::load(const std::string &file)
     ss >> width >> height >> maxColor;
 
     if(width <= 0 || height <= 0 || maxColor <= 0)
-        throw std::runtime_error("Ppm sizes are invalid");
+        throw std::runtime_error("Ppm sizes are invalid.");
     if(maxColor > 255)
-        throw std::runtime_error("Invalid maxColor (max is 255)");
+        throw std::runtime_error("Invalid maxColor (max is 255).");
 
     data.resize(height);
 
@@ -80,7 +79,7 @@ void PPMImage::load(const std::string &file)
 		{
             in >> r >> g >> b;
             if(!in.good())
-                fatalError("Bad ppm file");
+                printf("Unformatted ppm.");
 
             c.r = (float) r / maxColor;
             c.g = (float) g / maxColor;

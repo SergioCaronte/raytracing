@@ -3,6 +3,7 @@
 
 #include "object.h"
 #include "structs.h"
+#include "light.h"
 
 class Scene 
 {
@@ -33,6 +34,7 @@ public:
 
 protected:
 	void calculate_screen();
+	void calculate_uvw();
 	void parse_camera(std::ifstream &in);
 	void parse_light(std::ifstream &in);
 	void parse_texture(std::ifstream &in);

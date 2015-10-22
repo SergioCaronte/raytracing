@@ -44,7 +44,6 @@ Color Object::get_color(const Point &p)
             return texture.map.image.data.at(u).at(v);
 		break;
     }
-    throw std::runtime_error("Invalid texture type");
 }
 
 Vector Object::mul_vec( Matrix4x4 &mat, const Vector &p)
