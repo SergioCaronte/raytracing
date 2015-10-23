@@ -1,6 +1,6 @@
 #include "scene.h"
 #include "raytracer.h"
-#include "math\plane.h"
+#include "math/plane.h"
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
@@ -31,19 +31,19 @@ void Scene::load_file(int argc, char **argv)
     }
 
     // open the input file.
-    std::ifstream input(input);
-    if(!input.is_open())
+    std::ifstream f_input(input);
+    if(!f_input.is_open())
         printf("Failed to open input file (%s).", input);
 
     // parse the input file.
-    parse_camera(input);
-    parse_light(input);
-    parse_texture(input);
-    parse_material(input);
-    parse_object(input);
+    parse_camera(f_input);
+    parse_light(f_input);
+    parse_texture(f_input);
+    parse_material(f_input);
+    parse_object(f_input);
 
     // close the input file.
-    input.close();
+    f_input.close();
 }
 
 void Scene::calculate_screen() 
@@ -268,6 +268,19 @@ void Scene::parse_object(std::istream &in)
 			object->material = materials[matId];
 
 			in >> object->radius >> object->thickness;
+			in >> object->pos.x >> object->pos.y >> object->pos.z;
+			in >> object->rot.x >> object->rot.y >> object->rot.z;
+			object->calculate_matrices();
+			objects.push_back(object);
+		}
+		else if(type == "cylinder")
+		{
+			CylinderObject* object = new CylinderObject();
+			object->id = i;
+			object->texture = textures[texId];
+			object->material = materials[matId];
+
+			in >> object->bottom >> object->top >> object->radius;
 			in >> object->pos.x >> object->pos.y >> object->pos.z;
 			in >> object->rot.x >> object->rot.y >> object->rot.z;
 			object->calculate_matrices();

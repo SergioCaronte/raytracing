@@ -1,6 +1,7 @@
 #include "object.h"
 #include "scene.h"
-#include "math\math.h"
+#include "math/math.h"
+#include "math/matrix.h"
 
 
 #define	IsZero(x)	((x) > -EQN_EPS && (x) < EQN_EPS)
@@ -66,7 +67,7 @@ Point Object::mul_point( Matrix4x4 &mat, const Point &p)
 
 SphereObject::SphereObject()
 {
-	type = ObjectType::Sphere;
+	type = Sphere;
 }
 
 float SphereObject::hit_test(const Ray &ray, Vector &normal, const Point *max_pos, bool *inside)
@@ -119,7 +120,7 @@ float SphereObject::hit_test(const Ray &ray, Vector &normal, const Point *max_po
 
 PolyhedronObject::PolyhedronObject()
 {
-	type = ObjectType::Polyhedron;
+	type = Polyhedron;
 }
 
 float PolyhedronObject::hit_test(const Ray &ray, Vector &normal, const Point *max_pos, bool *inside)
@@ -176,11 +177,11 @@ float PolyhedronObject::hit_test(const Ray &ray, Vector &normal, const Point *ma
 }
 
 /////////////////////////////////////////
-/// Cylinder
+/// Torus
 /////////////////////////////////////////
 TorusObject::TorusObject()
 {
-	type = ObjectType::Torus;
+	type = Torus;
 }
 
 void TorusObject::calculate_matrices()
@@ -310,5 +311,201 @@ Vector TorusObject::compute_normal(const Point& p)
 	return (normal);	
 }
 
+/////////////////////////////////////////////////////////
+/// Cylinder
+/////////////////////////////////////////////////////////
+CylinderObject::CylinderObject()
+{
+	type = Cylinder;
+}
+
+void CylinderObject::calculate_matrices()
+{
+	inv_radius = 1.0/radius;
+
+	rot.x = toRads(rot.x);
+	rot.y = toRads(rot.y);
+	rot.z = toRads(rot.z);
+
+	//translate and inverse translate matrices
+	Matrix4x4 t, i_t;
+	t.identity();
+	t[0][3] = pos.x;	t[1][3] = pos.y;	t[2][3] = pos.z;
+
+	i_t.identity();
+	i_t[0][3] = -pos.x;	i_t[1][3] = -pos.y;	i_t[2][3] = -pos.z;
+
+	//rotation and inverse rotation matrices
+	Matrix4x4 r, i_r;
+	i_r.identity();
+	i_r[0][0] = cos(rot.y)*cos(rot.z);	i_r[0][1] = sin(rot.z);					i_r[0][2] = -sin(rot.y);
+	i_r[1][0] = -sin(rot.z);			i_r[1][1] = cos(rot.x)*cos(rot.z);		i_r[1][2] = sin(rot.x);
+	i_r[2][0] = sin(rot.y);				i_r[2][1] = -sin(rot.x);				i_r[2][2] = cos(rot.x)*cos(rot.y);
+
+	r.identity();
+	r[0][0] = cos(rot.y)*cos(rot.z);	r[0][1] = -sin(rot.z);				r[0][2] = sin(rot.y);
+	r[1][0] = sin(rot.z);				r[1][1] = cos(rot.x)*cos(rot.z);	r[1][2] = -sin(rot.x);
+	r[2][0] = -sin(rot.y);				r[2][1] = sin(rot.x);				r[2][2] = cos(rot.x)*cos(rot.y);
+
+	Matrix4x4 i_rx, i_ry, i_rz;
+	i_rx.identity();
+	i_rx[1][1] = cos(rot.x);		i_rx[1][2] = sin(rot.x);
+	i_rx[2][1] = -sin(rot.x);		i_rx[2][2] = cos(rot.x);
+
+	i_ry.identity();	
+	i_ry[0][0] = cos(rot.y);		i_ry[0][2] = -sin(rot.y);
+	i_ry[2][0] = sin(rot.y);		i_ry[2][2] = cos(rot.y);
+
+	i_rz.identity();	
+	i_rz[0][0] = cos(rot.z);		i_rz[0][1] = sin(rot.z);
+	i_rz[1][0] = -sin(rot.z);		i_rz[1][1] = cos(rot.z);
+
+	//object transform matrix  t rz rx ry
+	transform = t * r;
+
+	//object inverse transform matrix
+	inv_trans = i_t * i_r;
+}
+
+float CylinderObject::hit_test(const Ray &ray, Vector &normal, const Point *max_pos, bool *inside)
+{
+	Ray inv_ray;
+	inv_ray.origin = mul_point(inv_trans, ray.origin);
+	inv_ray.direction = mul_vec(inv_trans, ray.direction);
+
+	Vector c_normal;
+	bool c_inside;
+	double t = FLT_MAX;
+
+	// check collision with cylinder body
+	double c_t = hit_cylinder(inv_ray, c_normal, c_inside);
+	if(c_t > FLT_EPSILON && c_t < t) 
+	{
+		t = c_t;
+		normal = c_normal;			
+		if(inside)
+			*inside = c_inside;
+	}
+
+	// check collision with bottom disk
+	c_t = hit_disk(inv_ray, c_normal, Vector(0, -1, 0), Point(0, bottom, 0));
+	if(c_t > FLT_EPSILON && c_t < t) 
+	{
+		t = c_t;
+		normal = c_normal;	
+		if(inside)
+			inside = false;
+	}
+
+	// check collision with top disk
+	c_t = hit_disk(inv_ray, c_normal, Vector(0, 1, 0), Point(0, top, 0));
+	if(c_t > FLT_EPSILON && c_t < t) 
+	{
+		t = c_t;
+		normal = c_normal;
+		if(inside)
+			inside = false;
+	}
+
+	double max_t;
+    if(max_pos)
+        max_t = (max_pos->x - ray.origin.x) / ray.direction.x;
+    else
+        max_t = FLT_MAX;
+
+	if(t < max_t)
+	{
+		normal.normalize();
+		return t;
+	}
+	else
+		return -1.0;
+}
+
+float CylinderObject::hit_cylinder(const Ray &ray, Vector &normal, bool &inside)
+{
+	double t;
+	double ox = ray.origin.x;	double oy = ray.origin.y;	double oz = ray.origin.z;
+	double dx = ray.direction.x;	double dy = ray.direction.y;	double dz = ray.direction.z;
+	
+	double a = dx * dx + dz * dz;  	
+	double b = 2.0 * (ox * dx + oz * dz);					
+	double c = ox * ox + oz * oz - radius * radius;
+	double disc = b * b - 4.0 * a * c ;
+
+	Vector inv_rdir = ray.direction * (-1);
+
+	if (disc < 0.0)
+		return -1.0;
+	else
+	{	
+		double e = sqrt(disc);
+		double denom = 2.0 * a;
+		t = (-b - e) / denom;    // smaller root
+		
+		if (t > FLT_EPSILON)
+		{
+			double yhit = oy + t * dy;
+		
+			if (yhit > bottom && yhit < top) 
+			{
+				normal = Vector((ox + t * dx) * inv_radius, 0.0, (oz + t * dz) * inv_radius);
+				inside = false;
+				// test for hitting from inside
+				if ( Vector::dot(inv_rdir, normal) < 0.0)
+				{
+					normal = normal * (-1);
+					inside = true;
+				}
+				return t;
+			}
+		} 
+		
+		t = (-b + e) / denom;    // larger root
+		if (t > FLT_EPSILON)
+		{
+			double yhit = oy + t * dy;
+
+			double xhit = ox + t * dx;
+			double zhit = oz + t * dz;
+
+			if (yhit > bottom && yhit < top) 
+			{
+				normal = Vector((ox + t * dx) * inv_radius, 0.0, (oz + t * dz) * inv_radius);
+				inside = false;
+				// test for hitting inside surface
+				if ( Vector::dot(inv_rdir, normal) < 0.0)
+				{
+					normal = normal * (-1);
+					inside = true;
+				}	
+				return t;
+			}
+		} 
+	}
+	return -1.0;
+}
+
+float CylinderObject::hit_disk(const Ray &ray, Vector &normal, Vector disk_normal, Point disk_pos)
+{
+	double r_squared = radius * radius;
+
+	double t = Vector::dot((disk_pos - ray.origin), disk_normal) / Vector::dot(ray.direction, disk_normal);
+		
+	if (t <= FLT_EPSILON)
+		return -1.0;
+		
+	Point p = ray.origin + t * ray.direction;
+	double d_squared =  pow(disk_pos.x - p.x, 2) +
+						pow(disk_pos.y - p.y, 2) +
+						pow(disk_pos.z - p.z, 2);
+		
+	if (d_squared < r_squared) 
+	{
+		normal = disk_normal; 
+		return t;	
+	}
+	return -1.0;
+}
 
 

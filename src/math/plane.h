@@ -2,7 +2,7 @@
 #define MATH_PLANE_H
 
 #include "math.h"
-#include "Point.h"
+#include "point.h"
 #include "vector.h"
 
 class Plane 

@@ -3,15 +3,16 @@
 
 #include "structs.h"
 #include "ray.h"
-#include "math\plane.h"
-#include "math\matrix.h"
+#include "math/plane.h"
+#include "math/matrix.h"
 
 // Types of objects.
 enum ObjectType 
 {
     Sphere,
     Polyhedron,
-	Torus
+	Torus,
+	Cylinder
 };
 
 // Base Object.
@@ -80,6 +81,34 @@ public:
 
 private:
 	Vector compute_normal(const Point& p);
+};
+
+class CylinderObject : public Object
+{
+public:
+	CylinderObject();
+
+	void calculate_matrices();
+
+	float hit_test(const Ray &ray, Vector &normal, const Point *max_pos = NULL, bool *inside = NULL) override;
+
+	double bottom;
+	double top;
+	double radius;
+	//
+	Point pos;
+	Point rot;
+
+	Matrix4x4 transform;
+	Matrix4x4 inv_trans;
+private:
+	Point bottom_pos;
+	Point up_pos;
+	double inv_radius;
+
+	float hit_cylinder(const Ray &ray, Vector &normal, bool &inside);
+	float hit_disk(const Ray &ray, Vector &normal, Vector disk_normal, Point disk_pos);
+
 };
 
 #endif

@@ -11,7 +11,8 @@
 #include <sstream>
 
 template<size_t NumRows, size_t NumColumns, typename DataType = float>
-class Matrix {
+class Matrix 
+{
     /// The data of the matrix.
     DataType _data[NumRows][NumColumns];
 
@@ -167,7 +168,7 @@ public:
 typedef Matrix<4,4,float> Matrix4x4;
 
 
-template<int a, int b, int c>
+/*template<int a, int b, int c>
 Matrix<a, c> operator*( Matrix<a, b> &left,  Matrix<b, c> &right) 
 {
     Matrix<a, c> m;
@@ -179,6 +180,20 @@ Matrix<a, c> operator*( Matrix<a, b> &left,  Matrix<b, c> &right)
                 m[i][k] += left[i][k] * right[k][j];
 
     return m;
+}*/
+
+inline Matrix4x4 operator*( Matrix4x4 &left,  Matrix4x4 &right) 
+{
+    Matrix4x4 m;
+    m.fill(0);
+
+    for(size_t i = 0; i < left.getNumRows(); ++i)
+        for(size_t j = 0; j < right.getNumColumns(); ++j)
+            for(size_t k = 0; k < left.getNumColumns(); ++k)
+                m[i][k] += left[i][k] * right[k][j];
+
+    return m;
 }
+
 
 #endif 

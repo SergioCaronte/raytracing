@@ -1,4 +1,4 @@
-#include "MultiJittered.h"
+#include "multijittered.h"
 
 #define RAND_FLOAT(a) (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) * a
 

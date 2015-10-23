@@ -1,6 +1,6 @@
 #ifndef PPM_H
 #define PPM_H
-#include "Color.h"
+#include "color.h"
 #include <string>
 #include <vector>
 

@@ -1,8 +1,8 @@
 #ifndef RAY_H
 #define RAY_H
 
-#include "math\point.h"
-#include "math\vector.h"
+#include "math/point.h"
+#include "math/vector.h"
 
 class Ray
 {

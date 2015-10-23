@@ -3,8 +3,8 @@
 
 #include "color.h"
 #include "ray.h"
-#include "math\point.h"
-#include "math\vector.h"
+#include "math/point.h"
+#include "math/vector.h"
 #include "structs.h"
 #include "scene.h"
 #include "multijittered.h"

@@ -84,7 +84,8 @@ void Raytracer::compute_regular(Scene &scene)
 	// for each pixel of the virtual screen, calculate the color.
     for(size_t h = 0; h < sc.height_px; ++h) 
 	{
-		std::cout << "\rcalculating row " << h << " of " << sc.height_px;
+		std::cout << "calculating row " << h << " of " << sc.height_px << "\r";
+		std::cout.flush();
         for(size_t w = 0; w < sc.width_px; ++w) 
 		{
             // Get the pixel position.
@@ -106,7 +107,6 @@ void Raytracer::compute_regular(Scene &scene)
 			Color p = trace(scene, ray, max_depth);
 			output.set_color(w, h, p);
         }
-		std::cout << "\r                           ";
     }
 	if(!output.save(scene.output))
 		std::cerr << "Failed to save output file: " << scene.output << std::endl;
@@ -130,7 +130,8 @@ void  Raytracer::compute_sampled(Scene &scene)
 
     for(size_t h = 0; h < sc.height_px; ++h) 
 	{
-		std::cout << "\rcalculating row " << h << " of " << sc.height_px;
+		std::cout << "calculating row " << h << " of " << sc.height_px << "\r";
+		std::cout.flush();
         for(size_t w = 0; w < sc.width_px; ++w) 
 		{
 			Color p;
@@ -150,7 +151,6 @@ void  Raytracer::compute_sampled(Scene &scene)
 			}
 			output.set_color(w, h, p);
         }
-		std::cout << "\r                           ";
     }
 	if(!output.save(scene.output))
 		std::cerr << "Failed to save output file: " << scene.output << std::endl;
@@ -163,8 +163,7 @@ Color Raytracer::trace(Scene &scene, const Ray &r, size_t depth, Object *exclude
 
     // if ray didn't intersect anything, return ambient color
     if(!intersection(scene, r, intersec, NULL, excluded_obj, &inside))
-        return Color(0,0,0);
-		//return scene.ambient.color;
+        return scene.ambient.color;
 
 	Material mat = intersec.object.material;
 
@@ -225,26 +224,33 @@ Color Raytracer::trace(Scene &scene, const Ray &r, size_t depth, Object *exclude
     // just keep shoting ray, if there is depth
     if(depth > 0) 
 	{
-        // reflected component added in recursively.
-		Vector reflect_dir = get_reflection_direction(r.direction, intersec.normal);
-		Ray reflec_ray(intersec.contact, reflect_dir);
-        reflect_clr += trace(scene, reflec_ray, depth - 1, &intersec.object) * mat.kR;
-
-        // if inside the object invert the refraction rate.
-        float refr_rate = 1.0f / intersec.object.material.ior;
-        if(inside)
-            refr_rate = intersec.object.material.ior;
-
-        // transmission component added in recursively.
-        Vector trans_dir;
-        if(get_transmission_direction(refr_rate, r.direction, intersec.normal, trans_dir)) 
+		if(mat.kR > 0)
 		{
-			Ray refrac_ray(intersec.contact, trans_dir);
-            refract_clr += trace(scene, refrac_ray, depth - 1, &intersec.object) * mat.kT;
-        }
+			// reflected component added in recursively.
+			Vector reflect_dir = get_reflection_direction(r.direction, intersec.normal);
+			Ray reflec_ray(intersec.contact, reflect_dir);
+			reflect_clr += trace(scene, reflec_ray, depth - 1, &intersec.object) * mat.kR;
+		}
+
+
+		if(mat.kT > 0)
+		{
+			// if inside the object invert the refraction rate.
+			float refr_rate = 1.0f / intersec.object.material.ior;
+			if(inside)
+				refr_rate = intersec.object.material.ior;
+
+			// transmission component added in recursively.
+			Vector trans_dir;
+			if(get_transmission_direction(refr_rate, r.direction, intersec.normal, trans_dir)) 
+			{
+				Ray refrac_ray(intersec.contact, trans_dir);
+				refract_clr += trace(scene, refrac_ray, depth - 1, &intersec.object) * mat.kT;
+			}
+		}
     }
 
-	Color final_color = (intersec.color * (amb_clr + diff_clr + spec_clr) + reflect_clr + refract_clr);
+	Color final_color = (intersec.color * (amb_clr + diff_clr) + spec_clr + reflect_clr + refract_clr);
 	final_color.clamp();
 	return final_color;
 }

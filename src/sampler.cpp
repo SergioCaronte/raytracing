@@ -1,7 +1,7 @@
 #include <algorithm>   // for random_shuffle in Sampler::setup_shuffled_indices
 #include <stdlib.h>
-#include "Sampler.h"
-#include "math\math.h"
+#include "sampler.h"
+#include "math/math.h"
 
 Sampler::Sampler(void)						
 	: 	num_samples(1),
