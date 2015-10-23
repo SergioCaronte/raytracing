@@ -21,16 +21,24 @@ class Object
 public:
 	Object(){}
 
+	virtual void calculate_matrices(float dt = 0) {}
 	virtual float hit_test(const Ray &ray, Vector &normal, const Point *endPos = NULL, bool *inside = NULL){return -1.0;}
 	Vector mul_vec( Matrix4x4 &mat, const Vector &p);
 	Point mul_point( Matrix4x4 &mat, const Point &p);
-    
+    Color get_color(const Point &p);
+	
 	size_t id;
     ObjectType type;
 	Texture texture;
 	Material material;
-    // Returns the object surface color at a given point.
-    Color get_color(const Point &p);
+	
+	Vector acceleration;
+	Point pos;
+	// affines transforms
+	Point original_pos;
+	Point original_rot;
+    Point original_scale;
+	Matrix4x4 inv_trans;
 };
 
 
@@ -40,10 +48,10 @@ class SphereObject : public Object
 public:
 	SphereObject();
 
-	float hit_test(const Ray &ray, Vector &normal, const Point *max_pos = NULL, bool *inside = NULL) override;
-    // sphere center.
-    Point pos;
-    // sphere radius.
+	void calculate_matrices(float dt = 0) override;
+
+	float hit_test(const Ray &ray, Vector &normal, const Point *max_pos = NULL, bool *inside = NULL) override;    
+	// sphere radius.
     float radius;
 };
 
@@ -52,6 +60,8 @@ class PolyhedronObject : public Object
 {
 public:
 	PolyhedronObject();
+
+	void calculate_matrices(float dt = 0) override;
 
 	float hit_test(const Ray &ray, Vector &normal, const Point *max_pos = NULL, bool *inside = NULL) override;
     // number of faces.
@@ -65,19 +75,13 @@ class TorusObject : public Object
 public:
 	TorusObject();
 
-	void calculate_matrices();
+	void calculate_matrices(float dt = 0) override;
 
 	float hit_test(const Ray &ray, Vector &normal, const Point *max_pos = NULL, bool *inside = NULL) override;
 	// torus radius
 	double radius;
 	// torus thickness
 	double thickness;
-	//
-	Point pos;
-	Point rot;
-
-	Matrix4x4 transform;
-	Matrix4x4 inv_trans;
 
 private:
 	Vector compute_normal(const Point& p);
@@ -88,19 +92,14 @@ class CylinderObject : public Object
 public:
 	CylinderObject();
 
-	void calculate_matrices();
+	void calculate_matrices(float dt = 0) override;
 
 	float hit_test(const Ray &ray, Vector &normal, const Point *max_pos = NULL, bool *inside = NULL) override;
 
 	double bottom;
 	double top;
 	double radius;
-	//
-	Point pos;
-	Point rot;
 
-	Matrix4x4 transform;
-	Matrix4x4 inv_trans;
 private:
 	Point bottom_pos;
 	Point up_pos;

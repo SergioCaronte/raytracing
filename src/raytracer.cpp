@@ -28,13 +28,10 @@ Vector Raytracer::get_ray_direction(Scene &scene, int w, int h, const Point &ori
 
 	//Point pt = ori + (ax * scene.camera.x) + (ay * scene.camera.y) - (az * scene.camera.z);
 	//Vector dir = pt - ori;
-
-	float px_h = h;
-	float px_w = w;
 	
 	//pixel position onto view plane
-	float ay = -1 * (px_h -(float)scene.screen.height_px/2 + sp.y);
-	float ax = 1 * (px_w - (float)scene.screen.width_px/2 + sp.x);  
+	float ay = -1 * ((float)h -(float)scene.screen.height_px/2 + sp.y);
+	float ax = 1 *  ((float)w - (float)scene.screen.width_px/2 + sp.x);  
 	float az = 1;
 
 	az = scene.camera.focal_dist;
@@ -69,18 +66,15 @@ Vector Raytracer::get_ray_direction(Scene &scene, int w, int h)
 void Raytracer::compute_regular(Scene &scene)
 {
 	Screen sc = scene.screen;
-	Camera cam = scene.camera;
-
-    //Vector px_right = sc.px_size_w * sc.right_dir;
-    //Vector px_bottom = sc.px_size_h * sc.bottom_dir;
 
 	//ray origin is fixed from camera pos, direction will be calculated later
-	Ray ray(cam.pos, Vector());
+	Ray ray(scene.camera.pos, Vector());
 
 	//output file
 	PPMImage output;
 	output.create(sc.width_px, sc.height_px);
 
+	float ev = scene.camera.exposure/scene.camera.shutter_time;
 	// for each pixel of the virtual screen, calculate the color.
     for(size_t h = 0; h < sc.height_px; ++h) 
 	{
@@ -93,7 +87,6 @@ void Raytracer::compute_regular(Scene &scene)
             //pos += w * px_right;
             //pos += h * px_bottom;
 			
-
 			//float ay = -nh * ((h/(float)sc.height_px) - 0.5f);
 			//float ax = nw * ((w/(float)sc.width_px) - 0.5f);  
 			
@@ -102,9 +95,17 @@ void Raytracer::compute_regular(Scene &scene)
 			//dir.normalize();
             // Get a vector width the distance between the camera and the pixel.
 			//ray.direction = (pos - scene.camera.pos).normalize();
-			ray.direction = get_ray_direction(scene, w, h);
+			Color p;
+			for(float dt = 0; dt < scene.camera.shutter_time; dt+= scene.camera.exposure)
+			{
+				//delta time in millisseconds
+				float delta_time = dt/1000;
+				for(auto it = scene.objects.begin(); it != scene.objects.end(); ++it) 
+					(*it)->calculate_matrices(delta_time);
 
-			Color p = trace(scene, ray, max_depth);
+				ray.direction = get_ray_direction(scene, w, h);
+				p += trace(scene, ray, max_depth) * ev;
+			}
 			output.set_color(w, h, p);
         }
     }
@@ -120,14 +121,12 @@ void  Raytracer::compute_sampled(Scene &scene)
 	
 	Screen sc = scene.screen;
 
-    //Vector px_right = sc.px_size_w;// * sc.right_dir;
-    //Vector px_bottom = sc.px_size_h;// * sc.bottom_dir;
-
 	//output file
 	PPMImage output;
 	output.create(sc.width_px, sc.height_px);
 	// for each pixel of the virtual screen, calculate the color.
 
+	float ev = scene.camera.exposure/scene.camera.shutter_time;
     for(size_t h = 0; h < sc.height_px; ++h) 
 	{
 		std::cout << "calculating row " << h << " of " << sc.height_px << "\r";
@@ -146,8 +145,18 @@ void  Raytracer::compute_sampled(Scene &scene)
 				ray.origin = scene.camera.pos + lp.x * scene.camera.x + lp.y * scene.camera.y;
 				// Get a vector width the distance between the camera and the pixel.
 				ray.direction = get_ray_direction(scene, w, h, ray.origin, lp, sp);
-			
-				p += trace(scene, ray, max_depth) * inv_samples;
+				
+				Color e;
+				for(float dt = 0; dt < scene.camera.shutter_time; dt+= scene.camera.exposure)
+				{
+					//delta time in millisseconds
+					float delta_time = dt/1000;
+					for(auto it = scene.objects.begin(); it != scene.objects.end(); ++it) 
+						(*it)->calculate_matrices(delta_time);
+
+					e += trace(scene, ray, max_depth) * ev;
+				}
+				p += e * inv_samples;
 			}
 			output.set_color(w, h, p);
         }
@@ -250,7 +259,8 @@ Color Raytracer::trace(Scene &scene, const Ray &r, size_t depth, Object *exclude
 		}
     }
 
-	Color final_color = (intersec.color * (amb_clr + diff_clr) + spec_clr + reflect_clr + refract_clr);
+	Color surface_color = intersec.object.get_color(intersec.contact);
+	Color final_color = (surface_color * (amb_clr + diff_clr) + spec_clr + reflect_clr + refract_clr);
 	final_color.clamp();
 	return final_color;
 }
@@ -293,7 +303,6 @@ bool Raytracer::intersection(Scene &scene, const Ray &ray,
 		intersection.contact = ray.origin + closest_t * ray.direction;
 		intersection.object = *closest_obj;
 		intersection.normal = closest_normal;
-		intersection.color = intersection.object.get_color(intersection.contact);
 		
 		// check if camera is inside hit sphere.
 		if(intersection.object.type == ObjectType::Sphere) 

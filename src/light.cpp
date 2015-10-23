@@ -21,7 +21,7 @@ void Light::build_area(std::string stype)
 	sampler = new MultiJittered(num_samples);
 	if( stype == "noarea")
 	{
-		num_samples == 1;
+		num_samples = 1;
 		type = LAT_NoArea;
 	}
 	else if(stype == "square")

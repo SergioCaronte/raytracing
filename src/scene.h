@@ -33,8 +33,7 @@ public:
 	std::vector<Object*> objects;
 
 protected:
-	void calculate_screen();
-	void calculate_uvw();
+	void calculate_cam_base();
 	void parse_camera(std::ifstream &in);
 	void parse_light(std::ifstream &in);
 	void parse_texture(std::ifstream &in);

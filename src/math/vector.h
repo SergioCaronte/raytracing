@@ -13,7 +13,7 @@ public:
         : x(x), y(y), z(z), w(w) 
 	{}
 
-    inline double length() const 
+    inline float length() const 
 	{
         return std::sqrt( x*x + y*y + z*z);
     }
@@ -21,7 +21,7 @@ public:
 
     inline Vector &normalize() 
 	{
-		double norm = length();
+		float norm = length();
         if(norm)	invScale(norm);
         return *this;
     }

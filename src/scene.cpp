@@ -46,34 +46,7 @@ void Scene::load_file(int argc, char **argv)
     f_input.close();
 }
 
-void Scene::calculate_screen() 
-{
-	//screen.aspect =  (float)screen.width_px/ (float)screen.height_px;
-
-	//screen.samples = 4;
- //   screen.d = Point::distance(screen.center, camera.pos);
-
- //   // Sizes
- //   screen.height = 2 * tan(toRads(camera.fovy / 2.0f)) * screen.d;
- //   screen.width = (screen.height * screen.width_px) / screen.height_px;
-
- //   // Directions
- //   screen.right_dir = Vector::cross(camera.dir, camera.up);
- //   screen.right_dir.normalize();
- //   screen.bottom_dir = camera.up * (-1);
- //   screen.bottom_dir.normalize();
-
- //   // Top left pixel.
- //   screen.top_left = screen.center;
- //   screen.top_left -= screen.right_dir * (screen.width / 2.0f);
- //   screen.top_left += camera.up * (screen.height / 2.0f);
-
- //   // Pixel size.
- //   screen.px_size_w = screen.width / (float) screen.width_px;
- //   screen.px_size_h = screen.height / (float) screen.height_px;
-}
-
-void Scene::calculate_uvw()
+void Scene::calculate_cam_base()
 {
 	Vector view = camera.lookat - camera.pos;
 	view.normalize();
@@ -88,38 +61,29 @@ void Scene::parse_camera(std::ifstream &in)
 {
     in >> camera.pos.x >> camera.pos.y >> camera.pos.z;
 
-    in >> screen.center.x >> screen.center.y >> screen.center.z;
-	camera.lookat = screen.center;
-    camera.dir = screen.center - camera.pos;
+    in >> camera.lookat.x >> camera.lookat.y >> camera.lookat.z;
+    camera.dir = camera.lookat - camera.pos;
     camera.dir.normalize();
 
     in >> camera.up.x >> camera.up.y >> camera.up.z;
     camera.up.normalize();
 
-	in >> camera.fovy >> screen.samples >> camera.lens_radius >> camera.focal_dist >> camera.exposure_time;
+	in >> camera.fovy >> screen.samples >> camera.lens_radius >> camera.focal_dist;
+	in >> camera.shutter_time >> camera.exposure;
 	
-	// calculate_screen();
-	calculate_uvw();
+	calculate_cam_base();
 
 	// screen features
-	screen.theta = M_PI * camera.fovy/180;
 	Vector dist = camera.pos - camera.lookat;
-
 	// calculate viewplane distance
 	screen.d = 0.5f * screen.height_px  / tan((M_PI/180.0)*0.5f*camera.fovy);
 	
 	// add viewplane distance to focal_distance	
 	camera.focal_dist += Point::distance(camera.pos, camera.lookat);
-	
-	//useless
-	screen.aspect =  (float)screen.width_px/ (float)screen.height_px;
-	screen.px_size_h = 2 * tan(screen.theta/2.0);
-	screen.px_size_w = screen.px_size_h * screen.aspect;
 
 	// start camera sampler
 	camera.sampler = new MultiJittered(screen.samples);
 	camera.sampler->map_samples_to_unit_disk();
-
 }
 
 void Scene::parse_light(std::ifstream &in) 
@@ -237,8 +201,11 @@ void Scene::parse_object(std::istream &in)
 			object->texture = textures[texId];
 			object->material = materials[matId];
 
-            in >> object->pos.x >> object->pos.y >> object->pos.z;
+			in >> object->original_pos.x >> object->original_pos.y >> object->original_pos.z;
             in >> object->radius;
+			in >> object->original_scale.x >> object->original_scale.y >> object->original_scale.z;
+			in >> object->acceleration.x >> object->acceleration.y >> object->acceleration.z;
+			object->calculate_matrices();
 			objects.push_back(object);
         }
         else if(type == "polyhedron") 
@@ -268,8 +235,10 @@ void Scene::parse_object(std::istream &in)
 			object->material = materials[matId];
 
 			in >> object->radius >> object->thickness;
-			in >> object->pos.x >> object->pos.y >> object->pos.z;
-			in >> object->rot.x >> object->rot.y >> object->rot.z;
+			in >> object->original_pos.x >> object->original_pos.y >> object->original_pos.z;
+			in >> object->original_rot.x >> object->original_rot.y >> object->original_rot.z;
+			in >> object->original_scale.x >> object->original_scale.y >> object->original_scale.z;
+			in >> object->acceleration.x >> object->acceleration.y >> object->acceleration.z;
 			object->calculate_matrices();
 			objects.push_back(object);
 		}
@@ -281,8 +250,10 @@ void Scene::parse_object(std::istream &in)
 			object->material = materials[matId];
 
 			in >> object->bottom >> object->top >> object->radius;
-			in >> object->pos.x >> object->pos.y >> object->pos.z;
-			in >> object->rot.x >> object->rot.y >> object->rot.z;
+			in >> object->original_pos.x >> object->original_pos.y >> object->original_pos.z;
+			in >> object->original_rot.x >> object->original_rot.y >> object->original_rot.z;
+			in >> object->original_scale.x >> object->original_scale.y >> object->original_scale.z;
+			in >> object->acceleration.x >> object->acceleration.y >> object->acceleration.z;
 			object->calculate_matrices();
 			objects.push_back(object);
 		}

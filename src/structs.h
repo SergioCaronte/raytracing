@@ -19,7 +19,8 @@ struct Camera
     Vector up;	// Up vector.
 	Vector x, y, z;
     float fovy; // Field of view, in degrees.
-	float exposure_time; // Time of exposion
+	float shutter_time; //  Time that lens is opened to capture light
+	float exposure;		//exposure value
 	
 	Sampler* sampler;
 	float focal_dist;
@@ -29,20 +30,10 @@ struct Camera
 // Screen display.
 struct Screen 
 {  
-    Point center;		// Coordinate of the center of the display screen.
-	//Vector right_dir;	// Direction to the right of the screen.
-	//Vector bottom_dir;	// Direction to the bottom of the screen.
-	//Point top_left;		// Position of the top left pixel.
     size_t width_px;	// Size in pixels of the width of the screen.
     size_t height_px;	// Size in pixels of the height of the screen.
-	//float width;		// Size in world coordinates of the width of the screen.
-	//float height;		// Size in world coordinates of the height of the screen.
-	float px_size_w;	// Size in world coordinates of the width of a pixel.
-	float px_size_h;	// Size in world coordinates of the height of a pixel.
-	float aspect;
 	float d;
 	int samples;
-	float theta;
 };
 
 

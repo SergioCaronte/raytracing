@@ -11,20 +11,18 @@
 //////////////////////////////////////////////////////////
 Color Object::get_color(const Point &p)
 {
+	Color clr;
 	switch(texture.type) 
 	{
         case SolidTexture:
-            return texture.solid.color;
+            clr = texture.solid.color;
 		break;
         case CheckerTexture:
 			int pattern;
             pattern =	floor(p.x / texture.checker.scale) +
 						floor(p.y / texture.checker.scale) +
 						floor(p.z / texture.checker.scale);
-            if(pattern % 2)
-                return texture.checker.color2;
-            else
-                return texture.checker.color1;
+            clr = (pattern % 2) ? texture.checker.color2 : texture.checker.color1;
 		break;
         case MapTexture:
 			double s, r;
@@ -42,21 +40,22 @@ Color Object::get_color(const Point &p)
             v = (int)(s * texture.map.image.width) % texture.map.image.width;
             if(u < 0) u += texture.map.image.height;
             if(v < 0) v += texture.map.image.width;
-            return texture.map.image.data.at(u).at(v);
+            clr = texture.map.image.data.at(u).at(v);
 		break;
     }
+	return clr;
 }
 
-Vector Object::mul_vec( Matrix4x4 &mat, const Vector &p)
+Vector Object::mul_vec( Matrix4x4 &mat, const Vector &v)
 {
-	return Vector(mat[0][0] * p.x + mat[0][1] * p.y + mat[0][2] * p.z,
-					mat[1][0] * p.x + mat[1][1] * p.y + mat[1][2] * p.z,
-					mat[2][0] * p.x + mat[2][1] * p.y + mat[2][2] * p.z);
+	return Vector(	mat[0][0] * v.x + mat[0][1] * v.y + mat[0][2] * v.z,
+					mat[1][0] * v.x + mat[1][1] * v.y + mat[1][2] * v.z,
+					mat[2][0] * v.x + mat[2][1] * v.y + mat[2][2] * v.z);
 }
 
 Point Object::mul_point( Matrix4x4 &mat, const Point &p)
 {
-	return Point(mat[0][0] * p.x + mat[0][1] * p.y + mat[0][2] * p.z + mat[0][3],
+	return Point(	mat[0][0] * p.x + mat[0][1] * p.y + mat[0][2] * p.z + mat[0][3],
 					mat[1][0] * p.x + mat[1][1] * p.y + mat[1][2] * p.z + mat[1][3],
 					mat[2][0] * p.x + mat[2][1] * p.y + mat[2][2] * p.z + mat[2][3]);
 }
@@ -70,11 +69,34 @@ SphereObject::SphereObject()
 	type = Sphere;
 }
 
+void SphereObject::calculate_matrices(float dt)
+{
+	// acceleration at time dt
+	Vector c_acc = acceleration * dt;
+	// current pos
+	pos.x = original_pos.x + c_acc.x;
+	pos.y = original_pos.y + c_acc.y;
+	pos.z = original_pos.z + c_acc.z;
+
+	//inverse scale matrix
+	Matrix4x4 i_s;
+	i_s.identity();
+	i_s[0][0] = 1/original_scale.x;	i_s[1][1] = 1/original_scale.y;	i_s[2][2] = 1/original_scale.z;
+
+	//object inverse transform matrix
+	inv_trans = i_s;
+}
+
 float SphereObject::hit_test(const Ray &ray, Vector &normal, const Point *max_pos, bool *inside)
 {
-	Vector e = (ray.origin - pos);
-    double a = Vector::dot(ray.direction, ray.direction);
-    double b = 2.0f * Vector::dot(ray.direction, e);
+	Ray inv_ray;
+	inv_ray.origin = mul_point(inv_trans, ray.origin);
+	inv_ray.direction = mul_vec(inv_trans, ray.direction);
+	inv_ray.direction.normalize();
+
+	Vector e = (inv_ray.origin - pos);
+    double a = Vector::dot(inv_ray.direction, inv_ray.direction);
+    double b = 2.0f * Vector::dot(inv_ray.direction, e);
     double c = Vector::dot(e, e) - std::pow(radius, 2);
     double delta = std::pow(b, 2) - 4*a*c;
     
@@ -91,7 +113,7 @@ float SphereObject::hit_test(const Ray &ray, Vector &normal, const Point *max_po
     // Calculate the maximum t.
     double max_t;
     if(max_pos)
-        max_t = (max_pos->x - ray.origin.x) / ray.direction.x;
+        max_t = (max_pos->x - inv_ray.origin.x) / inv_ray.direction.x;
     else
         max_t = FLT_MAX;
 
@@ -99,14 +121,14 @@ float SphereObject::hit_test(const Ray &ray, Vector &normal, const Point *max_po
     if(t1 > FLT_EPSILON && t1 < max_t) 
 	{
         if(inside)	*inside = false;
-		Point intersection = ray.origin + t1 * ray.direction;
+		Point intersection = inv_ray.origin + t1 * inv_ray.direction;
 		normal = (intersection - pos).normalize();
         return t1;
     }
     else if(t2 > FLT_EPSILON && t2 < max_t) 
 	{
         if(inside)	*inside = true;
-		Point intersection = ray.origin + t2* ray.direction;
+		Point intersection = inv_ray.origin + t2* inv_ray.direction;
 		normal = (intersection - pos).normalize();
         return t2;
     }
@@ -122,6 +144,9 @@ PolyhedronObject::PolyhedronObject()
 {
 	type = Polyhedron;
 }
+
+void PolyhedronObject::calculate_matrices(float dt)
+{}
 
 float PolyhedronObject::hit_test(const Ray &ray, Vector &normal, const Point *max_pos, bool *inside)
 {
@@ -184,32 +209,26 @@ TorusObject::TorusObject()
 	type = Torus;
 }
 
-void TorusObject::calculate_matrices()
+void TorusObject::calculate_matrices(float dt)
 {
-	rot.x = toRads(rot.x);
-	rot.y = toRads(rot.y);
-	rot.z = toRads(rot.z);
+	// acceleration at time dt
+	Vector c_acc = acceleration * dt;
+	// current pos
+	pos.x = original_pos.x + c_acc.x;
+	pos.y = original_pos.y + c_acc.y;
+	pos.z = original_pos.z + c_acc.z;
 
-	//translate and inverse translate matrices
-	Matrix4x4 t, i_t;
-	t.identity();
-	t[0][3] = pos.x;	t[1][3] = pos.y;	t[2][3] = pos.z;
+	Point rot;
+	rot.x = toRads(original_rot.x);
+	rot.y = toRads(original_rot.y);
+	rot.z = toRads(original_rot.z);
 
+	//inverse translate matrix
+	Matrix4x4 i_t;
 	i_t.identity();
 	i_t[0][3] = -pos.x;	i_t[1][3] = -pos.y;	i_t[2][3] = -pos.z;
 
-	//rotation and inverse rotation matrices
-	Matrix4x4 r, i_r;
-	i_r.identity();
-	i_r[0][0] = cos(rot.y)*cos(rot.z);	i_r[0][1] = sin(rot.z);					i_r[0][2] = -sin(rot.y);
-	i_r[1][0] = -sin(rot.z);			i_r[1][1] = cos(rot.x)*cos(rot.z);		i_r[1][2] = sin(rot.x);
-	i_r[2][0] = sin(rot.y);				i_r[2][1] = -sin(rot.x);				i_r[2][2] = cos(rot.x)*cos(rot.y);
-
-	r.identity();
-	r[0][0] = cos(rot.y)*cos(rot.z);	r[0][1] = -sin(rot.z);				r[0][2] = sin(rot.y);
-	r[1][0] = sin(rot.z);				r[1][1] = cos(rot.x)*cos(rot.z);	r[1][2] = -sin(rot.x);
-	r[2][0] = -sin(rot.y);				r[2][1] = sin(rot.x);				r[2][2] = cos(rot.x)*cos(rot.y);
-
+	//inverse rotation matrix
 	Matrix4x4 i_rx, i_ry, i_rz;
 	i_rx.identity();
 	i_rx[1][1] = cos(rot.x);		i_rx[1][2] = sin(rot.x);
@@ -223,13 +242,13 @@ void TorusObject::calculate_matrices()
 	i_rz[0][0] = cos(rot.z);		i_rz[0][1] = sin(rot.z);
 	i_rz[1][0] = -sin(rot.z);		i_rz[1][1] = cos(rot.z);
 
-	//object transform matrix  t rz rx ry
-	transform = t * r;
+	//inverse scale matrix
+	Matrix4x4 i_s;
+	i_s.identity();
+	i_s[0][0] = 1/original_scale.x;	i_s[1][1] = 1/original_scale.y;	i_s[2][2] = 1/original_scale.z;
 
 	//object inverse transform matrix
-	inv_trans = i_t * i_r;
-	//inv_trans = i_ry * i_rx * i_rz * i_t;
-	//inv_trans = i_t * i_rz * i_rx * i_ry;
+	inv_trans = i_s * i_ry * i_rx * i_rz * i_t;
 }
 
 float TorusObject::hit_test(const Ray &ray, Vector &normal, const Point *max_pos, bool *inside)
@@ -237,6 +256,7 @@ float TorusObject::hit_test(const Ray &ray, Vector &normal, const Point *max_pos
 	Ray inv_ray;
 	inv_ray.origin = mul_point(inv_trans, ray.origin);
 	inv_ray.direction = mul_vec(inv_trans, ray.direction);
+	inv_ray.direction.normalize();
 
 	double x1 = inv_ray.origin.x; double y1 = inv_ray.origin.y; double z1 = inv_ray.origin.z;
 	double d1 = inv_ray.direction.x; double d2 = inv_ray.direction.y; double d3 = inv_ray.direction.z;
@@ -319,34 +339,28 @@ CylinderObject::CylinderObject()
 	type = Cylinder;
 }
 
-void CylinderObject::calculate_matrices()
+void CylinderObject::calculate_matrices(float dt)
 {
 	inv_radius = 1.0/radius;
+	
+	// acceleration at time dt
+	Vector c_acc = acceleration * dt;
+	// current pos
+	pos.x = original_pos.x + c_acc.x;
+	pos.y = original_pos.y + c_acc.y;
+	pos.z = original_pos.z + c_acc.z;
 
-	rot.x = toRads(rot.x);
-	rot.y = toRads(rot.y);
-	rot.z = toRads(rot.z);
+	Point rot;
+	rot.x = toRads(original_rot.x);
+	rot.y = toRads(original_rot.y);
+	rot.z = toRads(original_rot.z);
 
-	//translate and inverse translate matrices
-	Matrix4x4 t, i_t;
-	t.identity();
-	t[0][3] = pos.x;	t[1][3] = pos.y;	t[2][3] = pos.z;
-
+	//inverse translate matrix
+	Matrix4x4  i_t;
 	i_t.identity();
 	i_t[0][3] = -pos.x;	i_t[1][3] = -pos.y;	i_t[2][3] = -pos.z;
 
-	//rotation and inverse rotation matrices
-	Matrix4x4 r, i_r;
-	i_r.identity();
-	i_r[0][0] = cos(rot.y)*cos(rot.z);	i_r[0][1] = sin(rot.z);					i_r[0][2] = -sin(rot.y);
-	i_r[1][0] = -sin(rot.z);			i_r[1][1] = cos(rot.x)*cos(rot.z);		i_r[1][2] = sin(rot.x);
-	i_r[2][0] = sin(rot.y);				i_r[2][1] = -sin(rot.x);				i_r[2][2] = cos(rot.x)*cos(rot.y);
-
-	r.identity();
-	r[0][0] = cos(rot.y)*cos(rot.z);	r[0][1] = -sin(rot.z);				r[0][2] = sin(rot.y);
-	r[1][0] = sin(rot.z);				r[1][1] = cos(rot.x)*cos(rot.z);	r[1][2] = -sin(rot.x);
-	r[2][0] = -sin(rot.y);				r[2][1] = sin(rot.x);				r[2][2] = cos(rot.x)*cos(rot.y);
-
+	//inverse rotation matrix
 	Matrix4x4 i_rx, i_ry, i_rz;
 	i_rx.identity();
 	i_rx[1][1] = cos(rot.x);		i_rx[1][2] = sin(rot.x);
@@ -360,11 +374,13 @@ void CylinderObject::calculate_matrices()
 	i_rz[0][0] = cos(rot.z);		i_rz[0][1] = sin(rot.z);
 	i_rz[1][0] = -sin(rot.z);		i_rz[1][1] = cos(rot.z);
 
-	//object transform matrix  t rz rx ry
-	transform = t * r;
+	//inverse scale matrix
+	Matrix4x4 i_s;
+	i_s.identity();
+	i_s[0][0] = 1/original_scale.x;	i_s[1][1] = 1/original_scale.y;	i_s[2][2] = 1/original_scale.z;
 
 	//object inverse transform matrix
-	inv_trans = i_t * i_r;
+	inv_trans = i_s * i_ry * i_rx * i_rz * i_t;
 }
 
 float CylinderObject::hit_test(const Ray &ray, Vector &normal, const Point *max_pos, bool *inside)
@@ -372,6 +388,7 @@ float CylinderObject::hit_test(const Ray &ray, Vector &normal, const Point *max_
 	Ray inv_ray;
 	inv_ray.origin = mul_point(inv_trans, ray.origin);
 	inv_ray.direction = mul_vec(inv_trans, ray.direction);
+	inv_ray.direction.normalize();
 
 	Vector c_normal;
 	bool c_inside;

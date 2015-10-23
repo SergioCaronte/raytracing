@@ -167,21 +167,6 @@ public:
 
 typedef Matrix<4,4,float> Matrix4x4;
 
-
-/*template<int a, int b, int c>
-Matrix<a, c> operator*( Matrix<a, b> &left,  Matrix<b, c> &right) 
-{
-    Matrix<a, c> m;
-	m.fill(0);
-
-    for(size_t i = 0; i < left.getNumRows(); ++i)
-        for(size_t j = 0; j < right.getNumColumns(); ++j)
-            for(size_t k = 0; k < left.getNumColumns(); ++k)
-                m[i][k] += left[i][k] * right[k][j];
-
-    return m;
-}*/
-
 inline Matrix4x4 operator*( Matrix4x4 &left,  Matrix4x4 &right) 
 {
     Matrix4x4 m;
@@ -190,8 +175,7 @@ inline Matrix4x4 operator*( Matrix4x4 &left,  Matrix4x4 &right)
     for(size_t i = 0; i < left.getNumRows(); ++i)
         for(size_t j = 0; j < right.getNumColumns(); ++j)
             for(size_t k = 0; k < left.getNumColumns(); ++k)
-                m[i][k] += left[i][k] * right[k][j];
-
+                m[i][j] += left[i][k] * right[k][j];
     return m;
 }
 

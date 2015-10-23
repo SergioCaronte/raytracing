@@ -13,7 +13,6 @@
 struct Intersection
 {
 	Point contact;	// intersection point
-	Color color;	// color at intersection point
 	Vector normal;	// normal at intersection point
     Object object;	// intersected object
 };
