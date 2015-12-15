@@ -10,154 +10,105 @@
 #include <string>
 #include <sstream>
 
-template<size_t NumRows, size_t NumColumns, typename DataType = float>
-class Matrix 
+class Matrix4x4 
 {
     /// The data of the matrix.
-    DataType _data[NumRows][NumColumns];
+    float m[4][4];
 
 public:
 
 	inline void identity()
 	{
-		 for(size_t i = 0; i < getNumRows(); ++i) 
-		{
-            for(size_t j = 0; j < getNumColumns(); ++j) 
+		 for(size_t i = 0; i < 4; ++i) 
+            for(size_t j = 0; j < 4; ++j) 
 			{
 				if(i == j)
-					_data[i][j] = DataType(1);
+					m[i][j] = 1;
 				else
-					_data[i][j] = DataType(0);
+					m[i][j] = 0;
             }
-        }
 	}
 
-	inline void fill(DataType dt)
+	inline void fill(float v)
 	{
-		 for(size_t i = 0; i < getNumRows(); ++i) 
-		{
-            for(size_t j = 0; j < getNumColumns(); ++j) 
-			{
-                _data[i][j] = dt;
-            }
-        }
+		 for(size_t i = 0; i < 4; ++i) 
+            for(size_t j = 0; j < 4; ++j) 
+                m[i][j] = v;
 	}
 
-    inline DataType *operator[](size_t index) 
+    inline float *operator[](int index) 
 	{
-        return _data[index];
+        return m[index];
     }
 
 
-    inline const DataType *operator[](size_t index) const 
+    inline const float *operator[](int index) const 
 	{
-        return _data[index];
+        return m[index];
     }
 
    
-    inline DataType &at(size_t row, size_t column) 
+    inline float &at(int row, int column) 
 	{
-        if(row >= NumRows || column >= NumColumns)
-            throw std::out_of_range("Trying to access invalid matrix element");
-        return _data[row][column];
+        if(row >= 4 || column >= 4)
+            throw std::out_of_range("Trying to access invalid matrix position.");
+        return m[row][column];
     }
 
-    inline const DataType &at(size_t row, size_t column) const 
+    inline const float &at(int row, int column) const 
 	{
-        if(row >= NumRows || column >= NumColumns)
-            throw std::out_of_range("Trying to access invalid matrix element");
-        return _data[row][column];
+        if(row >= 4 || column >= 4)
+            throw std::out_of_range("Trying to access invalid matrix position.");
+        return m[row][column];
     }
 
-    inline size_t getNumRows()
+    Matrix4x4 &operator+=(const Matrix4x4 &right) 
 	{
-        return NumRows;
-    }
-
-    inline size_t getNumColumns() 
-	{
-        return NumColumns;
-    }
-
-    Matrix &operator+=(const Matrix &right) 
-	{
-        if((getNumRows() != right.getNumRows())
-                || getNumColumns() != right.getNumColumns()) {
-            throw std::runtime_error("Invalid matrix size");
-        }
-
-        for(size_t i = 0; i < getNumRows(); ++i) {
-            for(size_t j = 0; j < getNumColumns(); ++j) {
-                _data[i][j] += right[i][j];
-            }
-        }
+        for(int i = 0; i < 4; ++i) 
+            for(int j = 0; j < 4; ++j) 
+                m[i][j] += right[i][j];
     }
 
 
-    Matrix &operator-=(const Matrix &right) 
+    Matrix4x4 &operator-=(const Matrix4x4 &right) 
 	{
-        if((getNumRows() != right.getNumRows())
-                || getNumColumns() != right.getNumColumns()) 
-		{
-            throw std::runtime_error("Invalid matrix size");
-        }
-
-        for(size_t i = 0; i < getNumRows(); ++i) 
-		{
-            for(size_t j = 0; j < getNumColumns(); ++j) 
-			{
-                _data[i][j] -= right[i][j];
-            }
-        }
+        for(int i = 0; i < 4; ++i) 
+            for(int j = 0; j < 4; ++j) 
+                m[i][j] -= right[i][j];
     }
 
-    Matrix &operator*=(float right)
+    Matrix4x4 &operator*=(float right)
 	{
-        for(size_t i = 0; i < getNumRows(); ++i) 
-		{
-            for(size_t j = 0; j < getNumColumns(); ++j) 
-			{
-                _data[i][j] *= right;
-            }
-        }
+        for(int i = 0; i < 4; ++i) 
+            for(int j = 0; j < 4; ++j) 
+                m[i][j] *= right;
     }
 
 
-    Matrix &operator/=(float right) 
+    Matrix4x4 &operator/=(float right) 
 	{
-        if(std::abs(right) < FLT_EPSILON)
-            throw std::runtime_error("Division by zero");
-
-        for(size_t i = 0; i < getNumRows(); ++i) 
-		{
-            for(size_t j = 0; j < getNumColumns(); ++j) 
-			{
-                _data[i][j] /= right;
-            }
-        }
+        for(int i = 0; i < 4; ++i) 
+            for(int j = 0; j < 4; ++j) 
+                m[i][j] /= right;
     }
 
 
-    Matrix &operator*=(const Matrix &right)
+    Matrix4x4 &operator*=(const Matrix4x4 &right)
 	{
-        if(getNumRows() != right.getNumColumns()
-                || getNumColumns() != right.getNumRows())
-            throw std::runtime_error("Invalid matrix size");
-
-        for(size_t i = 0; i < getNumRows(); ++i)
-            for(size_t j = 0; j < right.getNumColumns(); ++j)
-                for(size_t k = 0; k < getNumColumns(); ++k)
-                    _data[i][k] *= right[k][j];
+        for(size_t i = 0; i < 4; ++i)
+            for(size_t j = 0; j < 4; ++j)
+                for(size_t k = 0; k < 4; ++k)
+                    m[i][k] *= right[k][j];
     }
 
 	std::string print() 
 	{
 		std::stringstream stream;
-		for(size_t i = 0; i < getNumRows(); ++i)
+		for(size_t i = 0; i < 4; ++i)
 		{
-			for(size_t j = 0; j < getNumColumns(); ++j)
+			for(size_t j = 0; j < 4; ++j)
 			{
-				stream << _data[i][j] << "\t";
+				stream << m[i][j] << "\t";
 			}
 			stream << "\n";
 		}
@@ -165,16 +116,14 @@ public:
 	}
 };
 
-typedef Matrix<4,4,float> Matrix4x4;
-
 inline Matrix4x4 operator*( Matrix4x4 &left,  Matrix4x4 &right) 
 {
     Matrix4x4 m;
     m.fill(0);
 
-    for(size_t i = 0; i < left.getNumRows(); ++i)
-        for(size_t j = 0; j < right.getNumColumns(); ++j)
-            for(size_t k = 0; k < left.getNumColumns(); ++k)
+    for(int i = 0; i < 4; ++i)
+        for(int j = 0; j < 4; ++j)
+            for(int k = 0; k < 4; ++k)
                 m[i][j] += left[i][k] * right[k][j];
     return m;
 }

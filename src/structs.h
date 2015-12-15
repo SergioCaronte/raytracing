@@ -8,7 +8,7 @@
 
 // Structs for Raytracing task
 
-class Sampler;
+struct Sampler;
 
 // Camera.
 struct Camera 

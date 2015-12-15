@@ -123,6 +123,8 @@ float SphereObject::hit_test(const Ray &ray, Vector &normal, const Point *max_po
         if(inside)	*inside = false;
 		Point intersection = inv_ray.origin + t1 * inv_ray.direction;
 		normal = (intersection - pos).normalize();
+		normal = mul_vec(inv_trans, normal);
+		normal.normalize();
         return t1;
     }
     else if(t2 > FLT_EPSILON && t2 < max_t) 
@@ -130,6 +132,8 @@ float SphereObject::hit_test(const Ray &ray, Vector &normal, const Point *max_po
         if(inside)	*inside = true;
 		Point intersection = inv_ray.origin + t2* inv_ray.direction;
 		normal = (intersection - pos).normalize();
+		normal = mul_vec(inv_trans, normal);
+		normal.normalize();
         return t2;
     }
     else
@@ -432,6 +436,7 @@ float CylinderObject::hit_test(const Ray &ray, Vector &normal, const Point *max_
 
 	if(t < max_t)
 	{
+		normal = mul_vec(inv_trans, normal);
 		normal.normalize();
 		return t;
 	}
